@@ -90,8 +90,12 @@ public class Events {
 			RemoveDev(m_nId);
 		}
 
-		public void takeOver(int value) {
-			takeOverDevice(m_nId, value);
+		public void takeOver(boolean value) {
+			int state=0;
+			if(value)
+				state=1;
+				
+			takeOverDevice(m_nId, state);
 		}
 
 		final int EV_KEY = 0x01, EV_REL = 0x02, EV_ABS = 0x03, REL_X = 0x00,
@@ -125,6 +129,7 @@ public class Events {
 					res = OpenDev(m_nId);
 				}
 			}
+			m_szName = getDevName(m_nId);
 			m_bOpen = (res == 0);
 			return m_bOpen;
 
@@ -142,9 +147,10 @@ public class Events {
 		ArrayList<InputDevice> m_Devs = new ArrayList<InputDevice>();
 		// m_Devs.clear();
 		int n = ScanFiles(); // return number of devs
-
+		
 		for (int i = 0; i < n; i++) {
 			m_Devs.add(new InputDevice(i, getDevPath(i)));
+			m_Devs.get(i).Open(true);
 		}
 
 		return m_Devs;

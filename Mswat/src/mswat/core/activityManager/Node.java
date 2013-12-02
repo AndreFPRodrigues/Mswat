@@ -16,7 +16,7 @@ public class Node {
 	private int y;
 	private String description;
 	private Rect bounds;
-	private int iconIndex;
+	private int iconIndex=-1;
 	private AccessibilityNodeInfo nodeInfo;
 	
 	private ArrayList <Node> childList;
@@ -76,11 +76,15 @@ public class Node {
 		
 		return bounds.contains((int) x, (int) y);
 	}
+	
+	public Rect getBounds(){
+		return bounds;
+	}
 
 	@Override
 	public String toString() {
-		String s = description + "------- Coord:" + getX() + " " + getY()
-				+ "----------- Icon:" + iconIndex;
+		String s = "("+description + "," + getX() + "," + getY()
+				+ "," + iconIndex+")";
 		return s;
 	}
 	

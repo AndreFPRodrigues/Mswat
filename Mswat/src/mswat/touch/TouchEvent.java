@@ -1,4 +1,4 @@
-package mswat.controllers.touch;
+package mswat.touch;
 
 import android.graphics.Point;
 

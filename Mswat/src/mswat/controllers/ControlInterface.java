@@ -1,43 +1,44 @@
 package mswat.controllers;
 
+import mswat.core.CoreController;
+import android.content.BroadcastReceiver;
+
 /**
  * Parent of all interfacing schemes
  * @author Andre Rodrigues
  *
  */
 
-public abstract class ControlInterface {
+public abstract class ControlInterface extends BroadcastReceiver{
 	
 	/**
-	 * Send/broadcast navNext message
+	 * Send navNext message
 	 */
 	void navNext(){
-		//TO DO 
+		CoreController.commandNav(CoreController.NAV_NEXT,0);
 	}
 	
 	/**
-	 * Send/broadcast navPrev message
+	 * Send navPrev message
 	 */
 	void navPrev(){
-		//TO DO 
+		CoreController.commandNav(CoreController.NAV_PREV,0); 
 	}
 	
 	/**
-	 * Send/broadcast selectCurrent message
+	 * Send selectCurrent message
 	 */
 	void selectCurrent(){
-		//TO DO 
+		CoreController.commandNav(CoreController.SELECT_CURRENT,0);
 	}
 	
 	/**
-	 * Send/broadcast focusIndex message
+	 * Send focusIndex message
 	 */
 	void focusIndex(int index){
-		//TO DO 
+		CoreController.commandNav(CoreController.FOCUS_INDEX,index);
+ 
 	}
 	
-	/**
-	 * Stub for receiving broadcast messages 
-	 */
-	abstract void onMessageReceive();
+	
 }

@@ -1,14 +1,13 @@
 package mswat.core.activityManager;
 
-
 import java.util.ArrayList;
-import java.util.List;
 
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
+import mswat.core.feedback.FeedBack;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
 import android.util.Log;
+import android.view.accessibility.AccessibilityNodeInfo;
 
 /**
  * Content Tree controller
@@ -17,91 +16,234 @@ import android.util.Log;
  * 
  */
 public class NodeListController {
-	
-	//Debugging purposes
+
+	// Debugging purposes
 	private final String LT = "NodeListController";
 
-	// Icon List
-	ArrayList<AppIcon> appIcons = new ArrayList<AppIcon>();
+	private HierarchicalService hs;
 
 	// Content list
 	ArrayList<Node> listCurrentNodes = new ArrayList<Node>();
-	
-	//navigation variables
+
+	private Node scrollNode = null;
+
+	private boolean audioFeedback;
+	private boolean visualFeedback;
+	// navigation variables
 	final int FOWARD = 0;
 	final int BACKWARD = 1;
 	int currentNavIndex = -1;
 	int navDirection = FOWARD;
 	boolean startedLineNav = true;
-	
-	//Node that represents the possibility of sliding to the next window
-	private Node scrollNode = null;
-	
+
 	/**
-	 * Create current installed apps icon list
-	 * @param pm
+	 * Initialises reference to the hierarchical service
+	 * 
+	 * @param hs
 	 */
-	public NodeListController(PackageManager pm) {
-		Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-		mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-
-		List<ResolveInfo> apps = pm.queryIntentActivities(mainIntent, 0);
-
-		for (ResolveInfo info : apps) {
-			String title = info.loadLabel(pm).toString();
-			if (title.length() == 0) {
-				title = info.activityInfo.name.toString();
-			}
-
-			AppIcon app = new AppIcon(info.loadIcon(pm), title);
-			appIcons.add(app);
-		}
+	public NodeListController(HierarchicalService hs,
+			boolean autoAudioFeedback, boolean autoVisualFeedback) {
+		this.hs = hs;
+		audioFeedback = autoAudioFeedback;
+		visualFeedback = autoVisualFeedback;
 	}
 
 	/**
 	 * Generates the list of the content tree last children
+	 * 
 	 * @return List of the current last children
 	 */
 	public ArrayList<Node> getContent() {
-		return listCurrentNodes;
+		return hs.getDescribedContent();
 	}
 
 	/**
 	 * Generates the current content tree
+	 * 
 	 * @return current full content tree
 	 */
 	public ArrayList<Node> getFullContent() {
+		AccessibilityNodeInfo parent = hs.getContentParent();
+		ArrayList<Node> list = new ArrayList<Node>();
+		Node n;
+		// TODO
 		return null;
+	}
+
+	private ArrayList<Node> getFullContent(ArrayList<Node> list,
+			AccessibilityNodeInfo source) {
+		return list;
+		// TODO
 	}
 
 	/**
 	 * Select current focused node
 	 */
 	public void selectFocus() {
+		
+
+		if (currentNavIndex != -1 && currentNavIndex < listCurrentNodes.size()) {
+			Node n = listCurrentNodes.get(currentNavIndex);
+			currentNavIndex = -1;
+			if (n != null) {
+				if (n.getAccessNode() != null) {
+					if (n.getName().equals("SCROLL")) {
+						if (navDirection == FOWARD) {
+							if (!n.getAccessNode()
+									.performAction(
+											AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD)) {
+								navDirection = BACKWARD;
+								n.getAccessNode()
+										.performAction(
+												AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD);
+							}
+						} else {
+							if (!n.getAccessNode()
+									.performAction(
+											AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD)) {
+								navDirection = FOWARD;
+								n.getAccessNode()
+										.performAction(
+												AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD);
+							}
+						}
+					} else {
+						if (n.getAccessNode().isClickable())
+							n.getAccessNode().performAction(
+									AccessibilityNodeInfo.ACTION_CLICK);
+						else {
+							if (n.getAccessNode().getParent() != null) {
+								n.getAccessNode()
+										.getParent()
+										.performAction(
+												AccessibilityNodeInfo.ACTION_CLICK);
+							}
+						}
+
+					}
+				}
+			}
+		}
+		if(visualFeedback)
+			FeedBack.clearHightlights();
+
 	}
-	
+
 	/**
 	 * Navigate to next node
 	 */
 	public void navNext() {
 		
+		if (listCurrentNodes.size() > 0) {
+			currentNavIndex = (currentNavIndex + 1) % listCurrentNodes.size();
+
+			Node n = listCurrentNodes.get(currentNavIndex);
+
+			AccessibilityNodeInfo node = n.getAccessNode();
+
+			if (n.getName().equals("SCROLL")) {
+
+				if (navDirection == FOWARD) {
+					if (!node
+							.performAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD)) {
+						navDirection = BACKWARD;
+						node.performAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD);
+					}
+				} else {
+					if (!node
+							.performAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD)) {
+						navDirection = FOWARD;
+						node.performAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD);
+					}
+
+				}
+				if(visualFeedback)
+					FeedBack.clearHightlights();
+				
+				currentNavIndex = -1;
+			} else {
+
+				node.performAction(AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS);
+
+				// auto audioFeedback
+				if (audioFeedback)
+					FeedBack.textToSpeech(n.getName());
+
+				// auto visual feedback
+				if (visualFeedback) {
+					FeedBack.hightlight(n.getBounds().top - 40,
+							n.getBounds().left, (float) 0.6, n.getBounds()
+									.width(), n.getBounds().height(), Color.BLUE);
+				}
+			}
+
+		}
+
 	}
-	
+
 	/**
 	 * Navigate to previous node
 	 */
 	public void navPrev() {
-		
-	}
 	
+
+		if (listCurrentNodes.size() > 0) {
+			if (currentNavIndex < 1)
+				currentNavIndex = listCurrentNodes.size() - 1;
+			else
+				currentNavIndex = (currentNavIndex - 1)
+						% listCurrentNodes.size();
+
+			Node n = listCurrentNodes.get(currentNavIndex);
+
+			AccessibilityNodeInfo node = n.getAccessNode();
+			if (n.getName().equals("SCROLL")) {
+
+				if (navDirection == FOWARD) {
+					if (!node
+							.performAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD)) {
+						navDirection = FOWARD;
+						node.performAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD);
+					}
+				} else {
+					if (!node
+							.performAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD)) {
+						navDirection = BACKWARD;
+						node.performAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD);
+					}
+
+				}
+
+				currentNavIndex = -1;
+			} else {
+				node.performAction(AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS);
+
+				// auto audioFeedback
+				if (audioFeedback)
+					FeedBack.textToSpeech(n.getName());
+
+				// auto visual feedback
+				if (visualFeedback) {
+					FeedBack.hightlight(n.getBounds().top - 40,
+							n.getBounds().left, (float) 0.6, n.getBounds()
+									.width(), n.getBounds().height(), Color.BLUE);
+				}
+			}
+
+		}
+	}
+
 	/**
 	 * Gets node name at given coords, null if none
-	 * @param x coord
-	 * @param y coord
+	 * 
+	 * @param x
+	 *            coord
+	 * @param y
+	 *            coord
 	 * @return String node description
 	 */
 	public String getNodeAt(double x, double y) {
-
+		hs.printViewItens(listCurrentNodes);
 		String result = "null";
 
 		int size = listCurrentNodes.size();
@@ -116,44 +258,43 @@ public class NodeListController {
 
 		return result;
 	}
-	
+
 	/**
 	 * Returns icon associated with string s
-	 * @param s 
+	 * 
+	 * @param s
 	 * @return drawable icon
 	 */
-	public Drawable getIcon (String s){
+	public Drawable getIcon(String s) {
 		return null;
 	}
-
+	
 	/**
-	 * Check if the clickable node has a correspondent icon
-	 * @param charSequence
-	 * @return -1 not found, >-1 icon index
+	 * Update node list with the latest view content
+	 * @param list
 	 */
-	@SuppressWarnings("unused")
-	private int checkIconMatch(CharSequence charSequence) {
-		for (int i = 0; i < appIcons.size(); i++) {
-
-			if (appIcons.get(i).getDescription().contentEquals(charSequence))
-				return i;
-		}
-		return -1;
+	void updateList(ArrayList <Node>list){
+		listCurrentNodes.clear();
+		listCurrentNodes=list;
+		currentNavIndex=-1;
+		
 	}
-
+	
 	/**
-	 *  Debugging
-	 *  Print to log current view list node
+	 * Sets automatic highlight on nav
+	 * @param state
 	 */
-		public void printViewItens() {
-			int size = listCurrentNodes.size();
-			Log.d(LT,
-					"---------------------List State------------------------------");
-
-			for (int i = 0; i < size; i++) {
-				Log.d(LT, listCurrentNodes.get(i).toString());
-			}
-
-		}
-
+	public void setAutoHighlight(boolean state) {
+		visualFeedback=state;
+		
+	}
+	
+	/**
+	 * Sets automatic TTS on nav
+	 * @param state
+	 */
+	public void setAutoTTS(boolean state) {
+		audioFeedback=state;
+		
+	}
 }
