@@ -8,9 +8,10 @@ import java.io.IOException;
 import mswat.core.activityManager.HierarchicalService;
 import android.app.Service;
 import android.os.AsyncTask;
+import android.util.Log;
 
 /**
- * Logging class with 3 modes 
+ * Logging class with 3 modes (TODO)
  * log touch - logging coordinates of presses , slides, long presses 
  * log touch and content actions - same has above plus what content was pressed 
  * log content actions - only what content was selected (only available if navigation done through the framework)
@@ -33,7 +34,7 @@ public class Logger {
 	 */
 	public void registerTouch(String message) {
 		
-		// 
+		Log.d(LT, message);
 		LogToFile task = new LogToFile(context, message);
 		task.execute();
 

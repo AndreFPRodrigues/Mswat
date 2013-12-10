@@ -1,5 +1,21 @@
 <resources>
 
     <string name="app_name">Mswat</string>
+    
+    <string name="controller">Controller</string>
+    <string name="default_controller">none</string>
+    <string name="set_controller">Select interface controller</string>
+    
+    <string name="log1">Logger</string>
+    <string name="log">Activate logger</string>
+    
+     <string name="audioFeed1">Audio Feedback</string>
+    <string name="audioFeed">Set Audio Feedback</string>
+    
+     <string name="visualFeed1">Visual Feedback</string>
+    <string name="visualFeed">Set Visual Feedback</string>
+    
+   
+    <string name="set_mswat">Customization</string>
 
 </resources>

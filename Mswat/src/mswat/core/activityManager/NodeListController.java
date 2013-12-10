@@ -25,10 +25,13 @@ public class NodeListController {
 	// Content list
 	ArrayList<Node> listCurrentNodes = new ArrayList<Node>();
 
+	//represents the ability to scroll
 	private Node scrollNode = null;
 
+	//Auto feedback variables
 	private boolean audioFeedback;
 	private boolean visualFeedback;
+	
 	// navigation variables
 	final int FOWARD = 0;
 	final int BACKWARD = 1;
@@ -296,5 +299,13 @@ public class NodeListController {
 	public void setAutoTTS(boolean state) {
 		audioFeedback=state;
 		
+	}
+
+	/**
+	 * Set current focus to index
+	 * @param index
+	 */
+	public void focusIndex(int index) {
+		currentNavIndex=index;
 	}
 }

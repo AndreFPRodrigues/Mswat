@@ -1,5 +1,6 @@
 package mswat.core.activityManager;
 
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,10 +10,12 @@ import mswat.core.ioManager.Monitor;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.util.Log;
@@ -37,8 +40,9 @@ public class HierarchicalService extends AccessibilityService {
 	private ArrayList<AppIcon> appIcons = new ArrayList<AppIcon>();
 
 	// flag to register keystrokes
-	private boolean loggingKeyboard = false;
+	private boolean logging = false;
 
+	private SharedPreferences sharedPref;
 	private Monitor monitor;
 	private NodeListController nlc;
 	private FeedBack fb;
@@ -61,12 +65,12 @@ public class HierarchicalService extends AccessibilityService {
 		currentParent = source;
 
 		// register keystrokes
-		if (loggingKeyboard
+		if (logging
 				&& AccessibilityEvent.eventTypeToString(event.getEventType())
 						.contains("TEXT")) {
 
 			if (event.getRemovedCount() > event.getAddedCount())
-				registerKeystroke("BackSpace", this);
+				monitor.registerKeystroke("BackSpace");
 			else {
 
 				if (event.getRemovedCount() != event.getAddedCount()) {
@@ -77,14 +81,14 @@ public class HierarchicalService extends AccessibilityService {
 					if ((event.getText().size() - 2) == event.getBeforeText()
 							.length()
 							|| (event.getAddedCount() - event.getRemovedCount()) > 1)
-						registerKeystroke("BackSpace", this);
+						monitor.registerKeystroke("BackSpace");
 					else {
 						String keypressed = event.getText().toString();
 						keypressed = ""
 								+ keypressed.charAt(keypressed.length() - 2);
 						if (keypressed.equals(" "))
 							keypressed = "Space";
-						registerKeystroke(keypressed, this);
+						monitor.registerKeystroke(keypressed);
 					}
 				}
 
@@ -205,11 +209,8 @@ public class HierarchicalService extends AccessibilityService {
 
 	}
 
-	private void registerKeystroke(String keypressed,
-			HierarchicalService hierarchicalService) {
-		// TODO Auto-generated method stub
-
-	}
+	
+	
 
 	@Override
 	public void onInterrupt() {
@@ -250,6 +251,7 @@ public class HierarchicalService extends AccessibilityService {
 		}
 
 		WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+		@SuppressWarnings("deprecation")
 		WindowManager.LayoutParams params = new WindowManager.LayoutParams(
 				WindowManager.LayoutParams.FILL_PARENT,
 				WindowManager.LayoutParams.FILL_PARENT,
@@ -258,18 +260,25 @@ public class HierarchicalService extends AccessibilityService {
 						| WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
 				PixelFormat.TRANSLUCENT);
 
+		//shared preferences
+		sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+		logging= sharedPref.getBoolean(ServicePreferences.LOG,false );
+		boolean audioFeedBack=sharedPref.getBoolean(ServicePreferences.AUDIO ,false );
+		boolean visualFeedBack=sharedPref.getBoolean(ServicePreferences.VISUAL ,false );
+		String controller= sharedPref.getString(ServicePreferences.CONTROLLER ,"null" );
+		
 		// initialise feedback
 		fb = new FeedBack(this, windowManager, params);
 
 		// TODO auto feedback values from shared preferences
-		nlc = new NodeListController(this, false, false);
+		nlc = new NodeListController(this, audioFeedBack, visualFeedBack);
 
 		// TODO logging from shared preferences
 		//initialise monitor
-		monitor = new Monitor(false, this);
+		monitor = new Monitor(logging, this);
 
 		// initialise coreController
-		CoreController cc = new CoreController(nlc, monitor, this);
+		CoreController cc = new CoreController(nlc, monitor, this , controller);
 		
 		//Goes to home screen (triggers accessibility event to update current content)
 		home();
@@ -313,6 +322,7 @@ public class HierarchicalService extends AccessibilityService {
 	 * @param checkList
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	private boolean checkUpdate() {
 		if (checkList.size() != nodeList.size()) {
 			nodeList.clear();

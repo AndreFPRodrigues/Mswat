@@ -32,7 +32,8 @@ public class Monitor {
 	boolean logging;
 
 	/**
-	 * Initialises list of devices Initialises Logger if logging is true
+	 * Initialises list of devices 
+	 * Initialises Logger if logging is true
 	 * 
 	 * @param logging
 	 */
@@ -41,10 +42,23 @@ public class Monitor {
 		dev = ev.Init();
 		monitoring = new boolean[dev.size()];
 		this.logging = logging;
+		autoSetTouch();
 		if (logging) {
 			logger = new Logger(hs);
+			monitorTouch();
 		}
-		autoSetTouch();
+		
+	}
+	
+	/**
+	 * Log keystroke if logger is enable
+	 * @param keypressed
+	 */
+	public void registerKeystroke(String keypressed
+			) {
+		if(logging)
+			logger.registerTouch("Previous Keystroke: " +keypressed);
+
 	}
 
 	/**

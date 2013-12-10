@@ -25,15 +25,6 @@ public class CoreController {
 	// debugging tag
 	private final static String LT = "CoreController";
 
-	// handles monitor messages
-	// private final static Handler monitorMessages = new Handler();
-
-	// handles received messages
-	//private final static Handler receivedMessages = new Handler();
-
-	// handles nodeListControllerMessages
-	//private final Handler nodeControllerMessages = new Handler();
-
 	// Modules where to forward messages
 	private static NodeListController nController;
 	private static Monitor monitor;
@@ -50,16 +41,14 @@ public class CoreController {
 	// IO Variables
 	public final static int SET_BLOCK = 0;
 	public final static int MONITOR_DEV = 1;
-	
+
 	// Mapped screen resolution
-	public static	double M_WIDTH;
-	public static	double M_HEIGHT;
-	
+	public static double M_WIDTH;
+	public static double M_HEIGHT;
+
 	// Screen resolution
 	public static double S_WIDTH = 1024;
 	public static double S_HEIGHT = 960;
-	
-	
 
 	/**
 	 * Initialise CoreController
@@ -67,17 +56,18 @@ public class CoreController {
 	 * @param nController
 	 * @param monitor
 	 * @param hierarchicalService
+	 * @param controller 
 	 */
 	public CoreController(NodeListController nController, Monitor monitor,
-			HierarchicalService hierarchicalService) {
+			HierarchicalService hierarchicalService, String controller) {
 		CoreController.monitor = monitor;
 		CoreController.nController = nController;
 		hs = hierarchicalService;
-		
-		//Broadcast the init signal
-		startService();
-		
-		//get screen resolution
+
+		// Broadcast the init signal
+		startService(controller);
+
+		// get screen resolution
 		WindowManager wm = (WindowManager) hierarchicalService
 				.getSystemService(Context.WINDOW_SERVICE);
 		Display display = wm.getDefaultDisplay();
@@ -92,9 +82,8 @@ public class CoreController {
 	/***********************************
 	 * IO Commands and messages
 	 * 
-	************************************* */
-	
-	
+	 ************************************* */
+
 	/**
 	 * Broadcasts raw monitor messages
 	 * 
@@ -109,9 +98,9 @@ public class CoreController {
 			final int code, final int value, final int timestamp) {
 		Thread b = new Thread(new Runnable() {
 			public void run() {
-		
+
 				if (hs != null) {
-		
+
 					// Broadcast event
 					Intent intent = new Intent();
 					intent.setAction("monitor");
@@ -121,30 +110,30 @@ public class CoreController {
 					intent.putExtra("value", value);
 					intent.putExtra("timestamp", timestamp);
 					hs.sendBroadcast(intent);
-		
+
 				}
 			}
 		});
 		b.start();
 
 	}
-	
+
 	/**
 	 * Broadcasts touch messages
 	 */
 	public static void touchMessage(final int type, final String message) {
 		Thread b = new Thread(new Runnable() {
 			public void run() {
-		
+
 				if (hs != null) {
-		
+
 					// Broadcast event
 					Intent intent = new Intent();
 					intent.setAction("monitor");
 					intent.putExtra("type", type);
 					intent.putExtra("message", message);
 					hs.sendBroadcast(intent);
-		
+
 				}
 			}
 		});
@@ -175,48 +164,47 @@ public class CoreController {
 		});
 		b.start();
 	}
-	
+
 	/**
 	 * Inject event into the device on the position index
+	 * 
 	 * @param index
 	 * @param type
 	 * @param code
 	 * @param value
 	 */
-	public static void inject(int index, int type, int code, int value){
+	public static void inject(int index, int type, int code, int value) {
 		monitor.inject(index, type, code, value);
 	}
-	
-	public static int monitorTouch(){
+
+	public static int monitorTouch() {
 		return monitor.monitorTouch();
 	}
-	
+
 	/**
 	 * Get list of internal devices (touchscree, keypad, etc)
+	 * 
 	 * @return
 	 */
-	public static String[] getDevices(){
+	public static String[] getDevices() {
 		return monitor.getDevices();
 	}
 
-	
 	/*************************************************
 	 * Navigation and content Commands and messages
 	 * 
-	**************************************************
-	**/
-	
+	 ************************************************** 
+	 **/
+
 	/**
-	 * Broadcasts node controller messages
-	 * Message format
-	 * [ node, node]
-	 * Node format
-	 * (<description/text>, <x center coord>, <y center coord>, <icon index>)
-	 *  *icon index = -1 if no correspondent icon found
+	 * Broadcasts node controller messages Message format [ node, node] Node
+	 * format (<description/text>, <x center coord>, <y center coord>, <icon
+	 * index>) *icon index = -1 if no correspondent icon found
+	 * 
 	 * @param message
 	 */
 	public static void nodeMessages(final String message) {
-		Thread b = new Thread(new Runnable(){
+		Thread b = new Thread(new Runnable() {
 			public void run() {
 				if (hs != null) {
 
@@ -231,12 +219,13 @@ public class CoreController {
 		});
 		b.start();
 	}
+
 	/**
 	 * Forwards the message to the appropriate component
 	 * 
 	 * @param message
 	 */
-	public static void commandNav(final int command, int index) {
+	public static void commandNav(final int command, final int index) {
 		Thread b = new Thread(new Runnable() {
 			public void run() {
 
@@ -252,7 +241,7 @@ public class CoreController {
 					nController.selectFocus();
 					break;
 				case FOCUS_INDEX:
-					// TODO
+					nController.focusIndex(index);
 					break;
 
 				}
@@ -282,7 +271,8 @@ public class CoreController {
 
 	/**
 	 * Return the node that contains point with coord x and y
-	 * @param x 
+	 * 
+	 * @param x
 	 * @param y
 	 * @return
 	 */
@@ -292,6 +282,7 @@ public class CoreController {
 
 	/**
 	 * Returns drawable with the description s TODO
+	 * 
 	 * @param s
 	 * @return
 	 */
@@ -299,102 +290,121 @@ public class CoreController {
 		// TODO getIcon
 		return nController.getIcon(s);
 	}
-	
+
 	/**
 	 * Sets highlighting to automatic
+	 * 
 	 * @param state
 	 */
-	public static void setAutoHighlight(boolean state){
+	public static void setAutoHighlight(boolean state) {
 		nController.setAutoHighlight(state);
 	}
-	
+
 	/**
 	 * Sets audio feedback (tts) to automatic
+	 * 
 	 * @param state
 	 */
-	public static void setAutoTTS(boolean state){
+	public static void setAutoTTS(boolean state) {
 		nController.setAutoHighlight(state);
 	}
-	
+
 	/*************************************************
 	 * Feeback methods
 	 * 
-	**************************************************
-	**/
-	
+	 ************************************************** 
+	 **/
+
 	/**
-	 * Removes all highlights and adds a new overlay 
-	 * @param marginTop - margin to the top of the screen
-	 * @param marginLeft - margin to the left of the screen
-	 * @param alpha - overlay transparency
-	 * @param width - width of the overlay
-	 * @param height - overlay height
-	 * @param color - int color 
+	 * Removes all highlights and adds a new overlay
+	 * 
+	 * @param marginTop
+	 *            - margin to the top of the screen
+	 * @param marginLeft
+	 *            - margin to the left of the screen
+	 * @param alpha
+	 *            - overlay transparency
+	 * @param width
+	 *            - width of the overlay
+	 * @param height
+	 *            - overlay height
+	 * @param color
+	 *            - int color
 	 */
-	public static void hightlight(int marginTop,   int marginLeft,
-			  float alpha,   int width,  int height , int color){
+	public static void hightlight(int marginTop, int marginLeft, float alpha,
+			int width, int height, int color) {
 		FeedBack.hightlight(marginTop, marginLeft, alpha, width, height, color);
 	}
-	
+
 	/**
 	 * Clears all highlights
 	 */
-	public static void clearHightlights(){
+	public static void clearHightlights() {
 		FeedBack.clearHightlights();
 	}
-	
+
 	/**
 	 * Text to speech
+	 * 
 	 * @param text
 	 */
-	public static void textToSpeech(String text){
+	public static void textToSpeech(String text) {
 		FeedBack.textToSpeech(text);
 	}
-	
+
 	/**
 	 * TODO add a highlight
+	 * 
 	 * @param marginTop
 	 * @param marginLeft
 	 * @param alpha
 	 * @param width
 	 * @param height
 	 */
-	public static void addHightlight( int marginTop,  int marginLeft,
-			 float alpha,  int width,  int height){
+	public static void addHightlight(int marginTop, int marginLeft,
+			float alpha, int width, int height) {
 		FeedBack.addHightlight(marginTop, marginLeft, alpha, width, height);
 	}
-	
+
 	/*************************************************
 	 * Auxiliary functions
 	 * 
-	**************************************************
-	**/
+	 ************************************************** 
+	 **/
 	/**
 	 * Calculate the mapped coordinate of x
+	 * 
 	 * @param x
 	 * @return
 	 */
-	public static int xToScreenCoord(double x){
+	public static int xToScreenCoord(double x) {
 		return (int) (M_WIDTH / S_WIDTH * x);
 	}
-	
+
 	/**
 	 * Calculate the mapped coordenate of y
+	 * 
 	 * @param x
 	 * @return
 	 */
-	public static int yToScreenCoord (double y){
+	public static int yToScreenCoord(double y) {
 		return (int) (M_HEIGHT / S_HEIGHT * y);
 	}
-	
-	public static void stopService(){
+
+	public static void stopService() {
+		// Broadcast event
+		Intent intent = new Intent();
+		intent.setAction("mswat_stop");
+		hs.sendBroadcast(intent);
 		hs.stopService();
 	}
-	
-	private void startService(){
+
+	private void startService(String controller) {
 		// Broadcast event
 		Intent intent = new Intent();
 		intent.setAction("mswat_init");
+		// TODO set from preferences
+		intent.putExtra("controller", controller);
 		hs.sendBroadcast(intent);
 	}
 

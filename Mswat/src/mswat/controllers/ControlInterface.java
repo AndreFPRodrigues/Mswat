@@ -11,6 +11,8 @@ import android.content.BroadcastReceiver;
 
 public abstract class ControlInterface extends BroadcastReceiver{
 	
+	
+	
 	/**
 	 * Send navNext message
 	 */
