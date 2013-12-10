@@ -1,0 +1,56 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mswat.core.activityManager"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="14"
+        android:targetSdkVersion="14" />
+
+    <uses-permission android:name="android.permission.GET_TASKS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name" >
+        <service
+            android:name="mswat.core.activityManager.HierarchicalService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:settingsActivity="mswat.core.activityManager.ServicePreferences" >
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/serviceconfig" />
+        </service>
+
+        <activity
+            android:name="mswat.core.activityManager.ServicePreferences"
+            android:label="@string/app_name"
+            android:launchMode="singleTop" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.accessibilityservice.SERVICE_SETTINGS" />
+            </intent-filter>
+        </activity>
+
+        <receiver android:name="mswat.controllers.TouchController" >
+            <intent-filter>
+                <action android:name="monitor" />
+                <action android:name="mswat_init" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name="mswat.controllers.AutoNavTouch" >
+            <intent-filter>
+                <action android:name="monitor" />
+                <action android:name="contentUpdate" />
+                <action android:name="mswat_init" />
+                <action android:name="mswat_stop" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>
