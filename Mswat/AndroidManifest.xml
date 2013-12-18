@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="mswat.core.activityManager"
     android:versionCode="1"
@@ -37,13 +38,17 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name="mswat.controllers.TouchController" >
+        <receiver
+            android:name="mswat.controllers.TouchController"
+            android:enabled="true" >
             <intent-filter>
                 <action android:name="monitor" />
                 <action android:name="mswat_init" />
             </intent-filter>
         </receiver>
-        <receiver android:name="mswat.controllers.AutoNavTouch" >
+        <receiver
+            android:name="mswat.controllers.AutoNavTouch"
+            android:enabled="true" >
             <intent-filter>
                 <action android:name="monitor" />
                 <action android:name="contentUpdate" />
@@ -51,6 +56,20 @@
                 <action android:name="mswat_stop" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name="mswat.adapt.TestVirtualDrive"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="monitor" />
+                <action android:name="mswat_init" />
+                <action android:name="mswat_stop" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name="mswat.core.calibration.CalibrationActivity"
+            android:label="@string/title_activity_calibration" >
+        </activity>
     </application>
 
 </manifest>

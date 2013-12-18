@@ -1,10 +1,13 @@
 package mswat.core.ioManager;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import mswat.adapt.TouchAdapter;
 import mswat.core.CoreController;
 import mswat.core.activityManager.HierarchicalService;
 import mswat.core.ioManager.Events.InputDevice;
@@ -31,9 +34,18 @@ public class Monitor {
 	boolean monitoring[];
 	boolean logging;
 
+	private static int IOMessagesThreshold = 50;
+
+	private boolean virtualDriveEnable = false;
+
+	private static boolean touchRawDataEnable = false;
+
+	private static boolean fowardToVirtual = false;
+
+	private static boolean calibrating = false;
+
 	/**
-	 * Initialises list of devices 
-	 * Initialises Logger if logging is true
+	 * Initialises list of devices Initialises Logger if logging is true
 	 * 
 	 * @param logging
 	 */
@@ -47,17 +59,17 @@ public class Monitor {
 			logger = new Logger(hs);
 			monitorTouch();
 		}
-		
+
 	}
-	
+
 	/**
 	 * Log keystroke if logger is enable
+	 * 
 	 * @param keypressed
 	 */
-	public void registerKeystroke(String keypressed
-			) {
-		if(logging)
-			logger.registerTouch("Previous Keystroke: " +keypressed);
+	public void registerKeystroke(String keypressed) {
+		if (logging)
+			logger.registerTouch("Previous Keystroke: " + keypressed);
 
 	}
 
@@ -81,10 +93,64 @@ public class Monitor {
 	 * @param type
 	 * @param code
 	 * @param value
-	 * @return if successful
 	 */
 	public void inject(int index, int type, int code, int value) {
 		dev.get(index).send(index, type, code, value);
+	}
+
+	/**
+	 * Inject events into the virtual touch device
+	 * 
+	 * @requires createVirtualTouchDrive() before
+	 * @param type
+	 * @param code
+	 * @param value
+	 */
+	public void injectToVirtual(int type, int code, int value) {
+		if (virtualDriveEnable) {
+			Events.sendVirtual(type, code, value);
+		}
+	}
+
+	public void stopCalibration() {
+		calibrating = false;
+	}
+
+	/**
+	 * Monitor for calibration
+	 */
+	public void setCalibration() {
+
+		calibrating = true;
+
+		Thread b = new Thread(new Runnable() {
+
+			public void run() {
+				Looper.prepare();
+				InputDevice idev = dev.get(touchIndex);
+				Log.d(LT, "YEP");
+				while (calibrating) {
+					if (idev.getOpen() && idev.getPollingEvent() == 0) {
+
+						int type = idev.getSuccessfulPollingType();
+						int code = idev.getSuccessfulPollingCode();
+						int value = idev.getSuccessfulPollingValue();
+
+						if (calibrating)
+							tpr.store(type, code, value, idev.getTimeStamp());
+
+					}
+				}
+				
+				CoreController.setScreenSize( tpr.getLastX() + 25,tpr.getLastY() + 125 );
+				
+				Log.d(LT, "height:" + CoreController.S_HEIGHT + " width:"
+						+ CoreController.S_WIDTH);
+
+			}
+		});
+		b.start();
+
 	}
 
 	/**
@@ -96,39 +162,105 @@ public class Monitor {
 	 *            - true to monitor, false to stop monitoring
 	 */
 	public void monitorDevice(final int index, final boolean state) {
+
 		if (state != monitoring[index]) {
+
 			monitoring[index] = state;
 			if (monitoring[index]) {
+
 				Thread b = new Thread(new Runnable() {
 
 					public void run() {
+
 						Looper.prepare();
 						InputDevice idev = dev.get(index);
+
+						int eventsGathered = 0;
+
+						ArrayList<String> event_devices = new ArrayList<String>();
+						ArrayList<Integer> event_types = new ArrayList<Integer>();
+						ArrayList<Integer> event_codes = new ArrayList<Integer>();
+						ArrayList<Integer> event_values = new ArrayList<Integer>();
+						ArrayList<Integer> event_timestamps = new ArrayList<Integer>();
+
 						while (monitoring[index]) {
+
 							if (idev.getOpen() && idev.getPollingEvent() == 0) {
-								if (index == touchIndex) {
-									int type;
-									if ((type = tpr.store(
-											idev.getSuccessfulPollingType(),
-											idev.getSuccessfulPollingCode(),
-											idev.getSuccessfulPollingValue(),
-											idev.getTimeStamp())) != -1) {
-										String message = touchMessage(type);
+								int type = idev.getSuccessfulPollingType();
+								int code = idev.getSuccessfulPollingCode();
+								int value = idev.getSuccessfulPollingValue();
+
+								if (index == touchIndex && !touchRawDataEnable) {
+
+									int touchType;
+									if ((touchType = tpr.store(type, code,
+											value, idev.getTimeStamp())) != -1) {
+
+										String message = touchMessage(touchType);
 
 										if (logging) {
 											logger.registerTouch(message);
 										}
 
-										CoreController.touchMessage(type, message);
+										CoreController.touchMessage(touchType,
+												message);
 									}
 
 								} else {
-									CoreController.monitorMessages(
-											idev.getName(),
-											idev.getSuccessfulPollingType(),
-											idev.getSuccessfulPollingCode(),
-											idev.getSuccessfulPollingValue(),
-											idev.getTimeStamp());
+
+									// Gather io events and only broadcast if
+									// events gathered are > ioMessagesThreshold
+									event_devices.add(idev.getName());
+									event_types.add(type);
+									event_codes.add(code);
+									event_values.add(value);
+									event_timestamps.add(idev.getTimeStamp());
+
+									eventsGathered++;
+									if (eventsGathered > IOMessagesThreshold) {
+										eventsGathered = 0;
+
+										String[] devices = new String[event_devices
+												.size()];
+										devices = event_devices
+												.toArray(devices);
+
+										int[] types = new int[event_types
+												.size()];
+										types = convertIntegers(event_types);
+
+										int[] codes = new int[event_codes
+												.size()];
+										codes = convertIntegers(event_codes);
+
+										int[] values = new int[event_values
+												.size()];
+										values = convertIntegers(event_values);
+
+										int[] timestamps = new int[event_timestamps
+												.size()];
+										timestamps = convertIntegers(event_timestamps);
+
+										event_devices.clear();
+										event_types.clear();
+										event_codes.clear();
+										event_values.clear();
+										event_timestamps.clear();
+
+										CoreController.monitorMessages(devices,
+												types, codes, values,
+												timestamps);
+									}
+
+								}
+
+								// Fowards touch events to the virtual drive
+								if (fowardToVirtual && virtualDriveEnable
+										&& index == touchIndex) {
+									int[] event = TouchAdapter.adapt(type,
+											code, value, TouchAdapter.NO_ADAPT);
+									injectToVirtual(event[0], event[1],
+											event[2]);
 								}
 							}
 						}
@@ -169,25 +301,50 @@ public class Monitor {
 	/**
 	 * Setup index for touchscreen device
 	 */
-	public void setupTocuh(int index) {
+	public void setupTouch(int index) {
 		touchIndex = index;
 	}
-	
+
+	/**
+	 * Set touch events to return raw data
+	 */
+	public void setTouchRawData(boolean state) {
+		touchRawDataEnable = state;
+	}
+
+	/**
+	 * Set forward io events to the virtual drive
+	 */
+	public void setFowardToVirtual(boolean state) {
+		fowardToVirtual = state;
+	}
+
+	/**
+	 * Creates a virtual touch drive
+	 */
+	public void createVirtualTouchDrive() {
+		dev.get(0).createVirtualDrive(dev.get(touchIndex).getName());
+
+		virtualDriveEnable = true;
+	}
+
 	/**
 	 * Starts monitoring the touch device
+	 * 
 	 * @return index of the touch device if successful -1 if not
 	 */
 	public int monitorTouch() {
-		if(touchIndex!=-1){
+		if (touchIndex != -1) {
 			monitorDevice(touchIndex, true);
 			return touchIndex;
-		}else
+		} else
 			return -1;
 
 	}
+
 	/**
-	 *Sets the touchIndex with the index value from the touchscreen if the 
-	 *touchscreen is labeled with either "input" or "touch"
+	 * Sets the touchIndex with the index value from the touchscreen if the
+	 * touchscreen is labeled with either "input" or "touch"
 	 */
 	private void autoSetTouch() {
 		touchIndex = -1;
@@ -199,9 +356,10 @@ public class Monitor {
 			}
 		}
 	}
-	
+
 	/**
 	 * Returns message describing the touch event
+	 * 
 	 * @param type
 	 * @return
 	 */
@@ -212,17 +370,26 @@ public class Monitor {
 		switch (type) {
 		case TouchPatternRecognizer.TOUCHED:
 			s = "Touched: " + CoreController.getNodeAt(x, y) + " x:" + x
-					+ " y:" + y;
+					+ " y:" + y + " Pressure:" + tpr.getPressure() + " TouchSize:" + tpr.getTouchSize();
 			break;
 		case TouchPatternRecognizer.SLIDE:
 			s = "Slide: " + tpr.getOriginX() + " x" + tpr.getOriginY()
 					+ " y --> " + x + "x " + y + "y";
 			break;
 		case TouchPatternRecognizer.LONGPRESS:
-			s = "LongPress: " + x + "x " + y + "y";
+			s = "LongPress: " + x + "x " + y + "y" +" Pressure:" + tpr.getPressure() + " TouchSize:" + tpr.getTouchSize();
 			break;
 		}
 		return s;
+	}
+
+	private static int[] convertIntegers(List<Integer> integers) {
+		int[] ret = new int[integers.size()];
+		Iterator<Integer> iterator = integers.iterator();
+		for (int i = 0; i < ret.length; i++) {
+			ret[i] = iterator.next().intValue();
+		}
+		return ret;
 	}
 
 }

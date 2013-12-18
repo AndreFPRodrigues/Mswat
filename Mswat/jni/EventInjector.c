@@ -130,11 +130,10 @@ const char *device = NULL;
     } while(0)
 
 int idVirtualTouch = 0;
-static int startDevice(void) {
+static int startDevice(const char *touchdevice) {
 
 	struct uinput_user_dev uidev;
 	struct input_event ev;
-
 	int fd;
 
 	fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
@@ -142,72 +141,38 @@ static int startDevice(void) {
 		die("error: open");
 	}
 	memset(&uidev, 0, sizeof(uidev));
-	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "t-eve");
-	uidev.id.bustype = BUS_VIRTUAL;
-	uidev.id.vendor = 0x1;
-	uidev.id.product = 0x1;
-	uidev.id.version = 1;
-	uidev.absmax[ABS_X] = 480;
-	uidev.absmax[ABS_Y] = 800;
+
+	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "%s",touchdevice);
+
+
+	uidev.id.bustype = 0;
+	uidev.id.vendor = 0x0;
+	uidev.id.product = 0x0;
+	uidev.id.version = 0;
+	uidev.absmax[ABS_MT_POSITION_X] = 480;
+	uidev.absmax[ABS_MT_POSITION_Y] = 800;
 
 	if (write(fd, &uidev, sizeof(uidev)) < 0) {
 		die("error: write");
 	}
-
-	/* touch screen event */
 	ioctl(fd, UI_SET_EVBIT, EV_ABS);
-	ioctl(fd, UI_SET_ABSBIT, ABS_X);
-	ioctl(fd, UI_SET_ABSBIT, ABS_Y);
-	ioctl(fd, UI_SET_EVBIT, EV_KEY);
+
+
+	ioctl(fd, UI_SET_ABSBIT, ABS_MT_POSITION_X);
+	ioctl(fd, UI_SET_ABSBIT, ABS_MT_POSITION_Y);
+	ioctl(fd, UI_SET_ABSBIT, ABS_MT_PRESSURE);
+	ioctl(fd, UI_SET_ABSBIT, ABS_MT_TOUCH_MAJOR);
+	ioctl(fd, UI_SET_ABSBIT, ABS_MT_TRACKING_ID);
 	ioctl(fd, UI_SET_KEYBIT, BTN_TOUCH);
+
 
 	if (ioctl(fd, UI_DEV_CREATE, 0) < 0) {
 		die("error: ioctl");
 	}
-	int i = 0;
-	memset(&ev, 0, sizeof(sizeof(ev)));
-	ev.type = EV_ABS;
-	ev.code = 53;
-	ev.value = 240;
-	write(fd, &ev, sizeof(struct input_event));
-	memset(&ev, 0, sizeof(sizeof(ev)));
 
-	ev.type = EV_ABS;
-	ev.code = 54;
-	ev.value = 750;
-	write(fd, &ev, sizeof(struct input_event));
-	memset(&ev, 0, sizeof(sizeof(ev)));
-
-	ev.type = EV_ABS;
-	ev.code = 58;
-	ev.value = 54;
-	write(fd, &ev, sizeof(struct input_event));
-	memset(&ev, 0, sizeof(sizeof(ev)));
-
-	ev.type = EV_ABS;
-	ev.code = 48;
-	ev.value = 4;
-	write(fd, &ev, sizeof(struct input_event));
-	memset(&ev, 0, sizeof(sizeof(ev)));
-
-	ev.type = EV_ABS;
-	ev.code = 57;
-	ev.value = 0;
-	write(fd, &ev, sizeof(struct input_event));
-	memset(&ev, 0, sizeof(sizeof(ev)));
-
-	ev.type = SYN_REPORT;
-	ev.code = 0;
-	ev.value = 0;
-	write(fd, &ev, sizeof(struct input_event));
-	/*
-	 if (ioctl(fd, UI_DEV_DESTROY) < 0)
-	 die("error: ioctl");
-	 */
-	//close(fd);
 	idVirtualTouch = fd;
 
-	return 2;
+	return 55;
 
 }
 
@@ -321,6 +286,20 @@ static int scan_dir(const char *dirname) {
 	closedir(dir);
 	return 0;
 }
+jint Java_mswat_core_ioManager_Events_sendVirtualEvent(JNIEnv* env,
+		jobject thiz, uint16_t type, uint16_t code, int32_t value) {
+
+	struct input_event event;
+
+
+	memset(&event, 0, sizeof(event));
+	event.type = type;
+	event.code = code;
+	event.value = value;
+
+	if (write(idVirtualTouch, &event, sizeof(struct input_event)) < 0)
+			die("error");
+}
 
 jint Java__mswat_core_ioManager_Events_intSendEvent(JNIEnv* env, jobject thiz,
 		jint index, uint16_t type, uint16_t code, int32_t value) {
@@ -422,13 +401,16 @@ jint Java_mswat_core_ioManager_Events_getCode(JNIEnv* env, jobject thiz) {
 }
 
 jint Java_mswat_core_ioManager_Events_getCode2(JNIEnv* env, jobject thiz) {
-	//return 0;
-	return startDevice();
+	return 0;
+	//return startDevice();
 }
-jint Java_mswat_core_ioManager_Events_createVirtualDevice(JNIEnv* env,
-		jobject thiz) {
+
+jint Java_mswat_core_ioManager_Events_createVirtualDevice(
+		JNIEnv* env, jobject thiz, jstring touchDevice) {
 	//return 0;
-	return startDevice();
+	const char *nativeString = (*env)->GetStringUTFChars(env, touchDevice, 0);
+
+	return startDevice(nativeString);
 }
 
 jint Java_mswat_core_ioManager_Events_getValue(JNIEnv* env, jobject thiz) {

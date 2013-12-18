@@ -1,7 +1,10 @@
 package mswat.core.activityManager;
 
+import mswat.controllers.TouchController;
+import android.content.ComponentName;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.PreferenceActivity;
@@ -13,7 +16,7 @@ public class ServicePreferences extends PreferenceActivity implements OnSharedPr
 	public static final String CONTROLLER = "controller";
 	public static final String AUDIO = "audio";
 	public static final String 	VISUAL = "visual";
-
+	public static final String 	CALIBRATION = "calibration";
 
 	@Override
 	@SuppressWarnings("deprecation")
@@ -23,6 +26,7 @@ public class ServicePreferences extends PreferenceActivity implements OnSharedPr
 		addPreferencesFromResource(R.xml.preferences);
 		getPreferenceScreen().getSharedPreferences()
         .registerOnSharedPreferenceChangeListener(this);
+		
 	}
 
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {

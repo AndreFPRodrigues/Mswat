@@ -1,10 +1,10 @@
 package mswat.core.activityManager;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
 import mswat.core.CoreController;
+import mswat.core.calibration.CalibrationActivity;
 import mswat.core.feedback.FeedBack;
 import mswat.core.ioManager.Monitor;
 
@@ -107,8 +107,6 @@ public class HierarchicalService extends AccessibilityService {
 			CoreController.nodeMessages(nodeList.toString());
 		}
 
-		// nlc.navNext();
-
 		// printViewItens(checkList);
 	}
 
@@ -209,9 +207,6 @@ public class HierarchicalService extends AccessibilityService {
 
 	}
 
-	
-	
-
 	@Override
 	public void onInterrupt() {
 		monitor.stop();
@@ -224,7 +219,6 @@ public class HierarchicalService extends AccessibilityService {
 		FeedBack.stop();
 		this.stopSelf();
 	}
-
 
 	/**
 	 * Initialise NodeListController Initialise Monitor Initialise
@@ -260,13 +254,30 @@ public class HierarchicalService extends AccessibilityService {
 						| WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
 				PixelFormat.TRANSLUCENT);
 
-		//shared preferences
+		// shared preferences
 		sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-		logging= sharedPref.getBoolean(ServicePreferences.LOG,false );
-		boolean audioFeedBack=sharedPref.getBoolean(ServicePreferences.AUDIO ,false );
-		boolean visualFeedBack=sharedPref.getBoolean(ServicePreferences.VISUAL ,false );
-		String controller= sharedPref.getString(ServicePreferences.CONTROLLER ,"null" );
+		logging = sharedPref.getBoolean(ServicePreferences.LOG, false);
+		boolean audioFeedBack = sharedPref.getBoolean(ServicePreferences.AUDIO,
+				false);
+		boolean visualFeedBack = sharedPref.getBoolean(
+				ServicePreferences.VISUAL, false);
+		boolean calibration = sharedPref.getBoolean(
+				ServicePreferences.CALIBRATION, false);
 		
+		
+		if ((sharedPref.getInt("s_width", (int) CoreController.S_WIDTH)) != 0) {
+			CoreController.S_WIDTH = sharedPref.getInt("s_width",
+					(int) CoreController.S_WIDTH);
+			CoreController.S_HEIGHT = sharedPref.getInt("s_height",
+					(int) CoreController.S_HEIGHT);		
+		}else{
+			CoreController.S_WIDTH = 1024;
+			CoreController.S_HEIGHT = 960;
+		}
+
+		String controller = sharedPref.getString(ServicePreferences.CONTROLLER,
+				"null");
+
 		// initialise feedback
 		fb = new FeedBack(this, windowManager, params);
 
@@ -274,30 +285,26 @@ public class HierarchicalService extends AccessibilityService {
 		nlc = new NodeListController(this, audioFeedBack, visualFeedBack);
 
 		// TODO logging from shared preferences
-		//initialise monitor
+		// initialise monitor
 		monitor = new Monitor(logging, this);
 
 		// initialise coreController
-		CoreController cc = new CoreController(nlc, monitor, this , controller);
-		
-		//Goes to home screen (triggers accessibility event to update current content)
-		home();
+		CoreController cc = new CoreController(nlc, monitor, this, controller,
+				true);
 
-		//testMonitor(monitor);
+		// starts calibration activity
+		if (calibration) {
+			cc.setCalibration();
+			Intent i = new Intent(getBaseContext(), CalibrationActivity.class);
+			i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			getApplication().startActivity(i);
+		} else {
+			// Goes to home screen (triggers accessibility event to update
+			// current
+			// content)
+			home();
+		}
 
-	}
-
-	/**
-	 * Testing monitor module
-	 */
-	void testMonitor(Monitor monitor) {
-		// monitor.getDevices();
-
-		// monitor touch
-		monitor.monitorTouch();
-
-		// block keypad
-		// monitor.setBlock(3, true);
 	}
 
 	/**
@@ -343,11 +350,17 @@ public class HierarchicalService extends AccessibilityService {
 
 		return false;
 	}
-	
+
 	// go to home screen
 	private void home() {
-			performGlobalAction(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
+		performGlobalAction(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
 
-		}
+	}
+
+	public void storeScreenSize(int width, int height) {
+		sharedPref.edit().putInt("s_width", width);
+		sharedPref.edit().putInt("s_height", height);
+
+	}
 
 }

@@ -28,6 +28,7 @@ public class CoreController {
 	// Modules where to forward messages
 	private static NodeListController nController;
 	private static Monitor monitor;
+	private static String controller;
 
 	// Context
 	private static HierarchicalService hs;
@@ -41,6 +42,10 @@ public class CoreController {
 	// IO Variables
 	public final static int SET_BLOCK = 0;
 	public final static int MONITOR_DEV = 1;
+	public final static int CREATE_VIRTUAL_TOUCH = 2;
+	public final static int SETUP_TOUCH = 3;
+	public final static int SET_TOUCH_RAW = 4;
+	public final static int FOWARD_TO_VIRTUAL=5;
 
 	// Mapped screen resolution
 	public static double M_WIDTH;
@@ -56,16 +61,20 @@ public class CoreController {
 	 * @param nController
 	 * @param monitor
 	 * @param hierarchicalService
-	 * @param controller 
+	 * @param controller
+	 * @param waitForCalibration 
 	 */
 	public CoreController(NodeListController nController, Monitor monitor,
-			HierarchicalService hierarchicalService, String controller) {
+			HierarchicalService hierarchicalService, String controller, boolean waitForCalibration) {
 		CoreController.monitor = monitor;
 		CoreController.nController = nController;
 		hs = hierarchicalService;
-
+		
+		
 		// Broadcast the init signal
-		startService(controller);
+		if(!waitForCalibration)
+			startService(controller);
+		this.controller=controller;
 
 		// get screen resolution
 		WindowManager wm = (WindowManager) hierarchicalService
@@ -94,21 +103,21 @@ public class CoreController {
 	 * @param value
 	 * @param timestamp
 	 */
-	public static void monitorMessages(final String device, final int type,
-			final int code, final int value, final int timestamp) {
+	public static void monitorMessages(final String[] devices, final int[] types,
+			final int[] codes, final int[] values, final int[] timestamps) {
 		Thread b = new Thread(new Runnable() {
 			public void run() {
-
+				
 				if (hs != null) {
 
 					// Broadcast event
 					Intent intent = new Intent();
 					intent.setAction("monitor");
-					intent.putExtra("dev", device);
-					intent.putExtra("type", type);
-					intent.putExtra("code", code);
-					intent.putExtra("value", value);
-					intent.putExtra("timestamp", timestamp);
+					intent.putExtra("dev", devices);
+					intent.putExtra("type", types);
+					intent.putExtra("code", codes);
+					intent.putExtra("value", values);
+					intent.putExtra("timestamp", timestamps);
 					hs.sendBroadcast(intent);
 
 				}
@@ -119,7 +128,7 @@ public class CoreController {
 	}
 
 	/**
-	 * Broadcasts touch messages
+	 * Broadcasts identified touch messages
 	 */
 	public static void touchMessage(final int type, final String message) {
 		Thread b = new Thread(new Runnable() {
@@ -148,21 +157,50 @@ public class CoreController {
 	 */
 	public static void commandIO(final int command, final int index,
 			final boolean state) {
+
 		Thread b = new Thread(new Runnable() {
 			public void run() {
 
 				// Separates and fowards messages to the apropriate module
 				switch (command) {
 				case SET_BLOCK:
+					Log.d(LT, "Block device: " + state);
 					monitor.setBlock(index, state);
 					break;
 				case MONITOR_DEV:
 					monitor.monitorDevice(index, state);
 					break;
+				case CREATE_VIRTUAL_TOUCH:
+					Log.d(LT, "Create virtual drive ");
+
+					monitor.createVirtualTouchDrive();
+					break;
+				case SETUP_TOUCH:
+					monitor.setupTouch(index);
+					break;
+				case FOWARD_TO_VIRTUAL:
+					monitor.setFowardToVirtual(state);
+					break;
+				case SET_TOUCH_RAW:
+					Log.d(LT, "Set raw touch data: " + state);
+					monitor.setTouchRawData(state);
+					break;
 				}
 			}
 		});
 		b.start();
+	}
+
+	/**
+	 * Inject event into touch virtual drive
+	 * 
+	 * @requires virtual touch driver created
+	 * @param t
+	 * @param c
+	 * @param v
+	 */
+	public static void injectToVirtual(int t, int c, int v) {
+		monitor.injectToVirtual(t, c, v);
 	}
 
 	/**
@@ -399,13 +437,27 @@ public class CoreController {
 		hs.stopService();
 	}
 
-	private void startService(String controller) {
+	private static void startService(String controller) {
 		// Broadcast event
 		Intent intent = new Intent();
 		intent.setAction("mswat_init");
-		// TODO set from preferences
 		intent.putExtra("controller", controller);
 		hs.sendBroadcast(intent);
+	}
+	
+	public void setCalibration(){
+		monitor.setCalibration();
+	}
+	
+	public static void stopCalibration(){
+		monitor.stopCalibration();
+		startService(controller);
+	}
+
+	public static void setScreenSize(int width, int height) {
+		CoreController.S_HEIGHT =width;
+		CoreController.S_WIDTH = height;
+		hs.storeScreenSize(width, height );
 	}
 
 }

@@ -25,6 +25,12 @@
             android:summary="@string/audioFeed"
             android:title="@string/audioFeed1" />
         
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="calibration"
+            android:summary="@string/calibration"
+            android:title="@string/calibration1" />
+        
          <CheckBoxPreference
             android:defaultValue="false"
             android:key="visual"

@@ -26,6 +26,7 @@ package mswat.core.ioManager;
 
 import java.util.ArrayList;
 
+
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -47,6 +48,7 @@ public class Events {
 		public int InjectEvent() {
 			return 0;
 		}
+	
 
 		public int getPollingEvent() {
 			return PollDev(m_nId);
@@ -134,7 +136,21 @@ public class Events {
 			return m_bOpen;
 
 		}
+		
+		public int  createVirtualDrive(String touch) {
+			if (Shell.isSuAvailable()) {
+				Shell.runCommand("chmod 666 " + "/dev/uinput");
+			}
 
+			return createVirtualDevice(touch);
+
+		}
+
+	}
+
+	
+	public static void sendVirtual(int t , int c, int v){
+		sendVirtualEvent( t, c, v);
 	}
 
 
@@ -179,12 +195,14 @@ public class Events {
 
 	private native static int getTime();
 
-	private native static int createVirtualDevice();
+	private native static int createVirtualDevice(String touch2);
 
 	private native static int getValue();
 
 	// injector:
 	private native static int intSendEvent(int devid, int type, int code,
+			int value);
+	private native static int sendVirtualEvent( int type, int code,
 			int value);
 
 	static {
