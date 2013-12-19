@@ -42,7 +42,6 @@
             android:name="mswat.controllers.TouchController"
             android:enabled="true" >
             <intent-filter>
-                <action android:name="monitor" />
                 <action android:name="mswat_init" />
             </intent-filter>
         </receiver>
@@ -57,7 +56,7 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name="mswat.adapt.TestVirtualDrive"
+            android:name="mswat.adapt.TouchAdapter"
             android:enabled="true" >
             <intent-filter>
                 <action android:name="monitor" />

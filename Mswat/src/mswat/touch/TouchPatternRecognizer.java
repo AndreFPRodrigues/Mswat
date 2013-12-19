@@ -112,4 +112,6 @@ public class TouchPatternRecognizer {
 	public int getTouchSize() {
 		return touchSize;
 	}
+	
+	
 }

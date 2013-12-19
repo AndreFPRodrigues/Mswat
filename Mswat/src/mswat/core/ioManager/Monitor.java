@@ -38,9 +38,7 @@ public class Monitor {
 
 	private boolean virtualDriveEnable = false;
 
-	private static boolean touchRawDataEnable = false;
-
-	private static boolean fowardToVirtual = false;
+	private boolean broadcastIO = false;
 
 	private static boolean calibrating = false;
 
@@ -49,7 +47,7 @@ public class Monitor {
 	 * 
 	 * @param logging
 	 */
-	public Monitor(boolean logging, HierarchicalService hs) {
+	public Monitor(boolean logging, HierarchicalService hs, boolean broadcastIO) {
 		Events ev = new Events();
 		dev = ev.Init();
 		monitoring = new boolean[dev.size()];
@@ -59,6 +57,8 @@ public class Monitor {
 			logger = new Logger(hs);
 			monitorTouch();
 		}
+
+		this.broadcastIO = broadcastIO;
 
 	}
 
@@ -141,11 +141,12 @@ public class Monitor {
 
 					}
 				}
-				
-				CoreController.setScreenSize( tpr.getLastX() + 25,tpr.getLastY() + 125 );
-				
-				Log.d(LT, "height:" + CoreController.S_HEIGHT + " width:"
-						+ CoreController.S_WIDTH);
+
+				CoreController.setScreenSize(tpr.getLastX() + 25,
+						tpr.getLastY() + 125);
+
+				//Log.d(LT, "height:" + CoreController.S_HEIGHT + " width:"
+					//	+ CoreController.S_WIDTH);
 
 			}
 		});
@@ -189,27 +190,20 @@ public class Monitor {
 								int type = idev.getSuccessfulPollingType();
 								int code = idev.getSuccessfulPollingCode();
 								int value = idev.getSuccessfulPollingValue();
+								int timestamp = idev.getTimeStamp();
+								Log.d(LT, type + " " + code + " " + value + " " +  timestamp );
+								CoreController.updateIOReceivers(
+										index, type, code, value,
+										timestamp);
+							
+								 /*
+								 * if (logging) { logger.registerTouch(message);
+								 * }*/
+							
 
-								if (index == touchIndex && !touchRawDataEnable) {
-
-									int touchType;
-									if ((touchType = tpr.store(type, code,
-											value, idev.getTimeStamp())) != -1) {
-
-										String message = touchMessage(touchType);
-
-										if (logging) {
-											logger.registerTouch(message);
-										}
-
-										CoreController.touchMessage(touchType,
-												message);
-									}
-
-								} else {
-
-									// Gather io events and only broadcast if
-									// events gathered are > ioMessagesThreshold
+								// Gather io events and only broadcast if
+								// events gathered are > ioMessagesThreshold
+								if (broadcastIO) {
 									event_devices.add(idev.getName());
 									event_types.add(type);
 									event_codes.add(code);
@@ -250,18 +244,13 @@ public class Monitor {
 										CoreController.monitorMessages(devices,
 												types, codes, values,
 												timestamps);
+										// }
+
 									}
-
 								}
 
-								// Fowards touch events to the virtual drive
-								if (fowardToVirtual && virtualDriveEnable
-										&& index == touchIndex) {
-									int[] event = TouchAdapter.adapt(type,
-											code, value, TouchAdapter.NO_ADAPT);
-									injectToVirtual(event[0], event[1],
-											event[2]);
-								}
+							
+
 							}
 						}
 					}
@@ -305,19 +294,7 @@ public class Monitor {
 		touchIndex = index;
 	}
 
-	/**
-	 * Set touch events to return raw data
-	 */
-	public void setTouchRawData(boolean state) {
-		touchRawDataEnable = state;
-	}
 
-	/**
-	 * Set forward io events to the virtual drive
-	 */
-	public void setFowardToVirtual(boolean state) {
-		fowardToVirtual = state;
-	}
 
 	/**
 	 * Creates a virtual touch drive
@@ -357,31 +334,7 @@ public class Monitor {
 		}
 	}
 
-	/**
-	 * Returns message describing the touch event
-	 * 
-	 * @param type
-	 * @return
-	 */
-	private String touchMessage(int type) {
-		int x = tpr.getLastX();
-		int y = tpr.getLastY();
-		String s = null;
-		switch (type) {
-		case TouchPatternRecognizer.TOUCHED:
-			s = "Touched: " + CoreController.getNodeAt(x, y) + " x:" + x
-					+ " y:" + y + " Pressure:" + tpr.getPressure() + " TouchSize:" + tpr.getTouchSize();
-			break;
-		case TouchPatternRecognizer.SLIDE:
-			s = "Slide: " + tpr.getOriginX() + " x" + tpr.getOriginY()
-					+ " y --> " + x + "x " + y + "y";
-			break;
-		case TouchPatternRecognizer.LONGPRESS:
-			s = "LongPress: " + x + "x " + y + "y" +" Pressure:" + tpr.getPressure() + " TouchSize:" + tpr.getTouchSize();
-			break;
-		}
-		return s;
-	}
+
 
 	private static int[] convertIntegers(List<Integer> integers) {
 		int[] ret = new int[integers.size()];

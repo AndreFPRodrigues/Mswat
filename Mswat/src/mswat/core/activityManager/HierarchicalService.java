@@ -46,6 +46,8 @@ public class HierarchicalService extends AccessibilityService {
 	private Monitor monitor;
 	private NodeListController nlc;
 	private FeedBack fb;
+	
+	private boolean broadcastContent = false;
 
 	/**
 	 * Triggers whenever happens an event (changeWindow, focus, slide) Updates
@@ -104,7 +106,11 @@ public class HierarchicalService extends AccessibilityService {
 
 		if (checkUpdate()) {
 			nlc.updateList(nodeList);
-			CoreController.nodeMessages(nodeList.toString());
+			if(broadcastContent)
+				CoreController.nodeMessages(nodeList.toString());
+			
+			//Send content update to the receivers
+			CoreController.updateContentReceivers(nodeList);
 		}
 
 		// printViewItens(checkList);
@@ -257,13 +263,19 @@ public class HierarchicalService extends AccessibilityService {
 		// shared preferences
 		sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 		logging = sharedPref.getBoolean(ServicePreferences.LOG, false);
+		
+		
+
 		boolean audioFeedBack = sharedPref.getBoolean(ServicePreferences.AUDIO,
 				false);
 		boolean visualFeedBack = sharedPref.getBoolean(
 				ServicePreferences.VISUAL, false);
+		
 		boolean calibration = sharedPref.getBoolean(
 				ServicePreferences.CALIBRATION, false);
 		
+		boolean broadcastIO = sharedPref.getBoolean(ServicePreferences.BROADCAST_IO, false);
+		broadcastContent = sharedPref.getBoolean(ServicePreferences.BROADCAST_CONTENT, false);
 		
 		if ((sharedPref.getInt("s_width", (int) CoreController.S_WIDTH)) != 0) {
 			CoreController.S_WIDTH = sharedPref.getInt("s_width",
@@ -286,11 +298,11 @@ public class HierarchicalService extends AccessibilityService {
 
 		// TODO logging from shared preferences
 		// initialise monitor
-		monitor = new Monitor(logging, this);
+		monitor = new Monitor(logging, this, broadcastIO);
 
 		// initialise coreController
 		CoreController cc = new CoreController(nlc, monitor, this, controller,
-				true);
+				calibration);
 
 		// starts calibration activity
 		if (calibration) {

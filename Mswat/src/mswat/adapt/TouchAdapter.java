@@ -1,27 +1,59 @@
 package mswat.adapt;
 
 import mswat.core.CoreController;
+import mswat.interfaces.IOReceiver;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.util.Log;
 
-public class TouchAdapter {
+public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
+	private final String LT = "VirtualDrive";
+	private int deviceIndex;
 
-	public static final int NO_ADAPT = 0;
+	@Override
+	public void onReceive(Context context, Intent intent) {
+		if (intent.getAction().equals("mswat_init1")) {
 
-	public static int[] adapt(int type, int code, int value, int mode) {
-		int[] event = new int[3];
+			Log.d(LT, "Virtual touch initialised");
 
-		switch (mode) {
-		case NO_ADAPT:
+			// register receiver
+			registerIOReceiver();
+
+			// starts monitoring touchscreen
+			deviceIndex = CoreController.monitorTouch();
+
+			// blocks the touch screen
+			CoreController.commandIO(CoreController.SET_BLOCK, deviceIndex,
+					true);
+
+			// create virtual touch drive
+			CoreController.commandIO(CoreController.CREATE_VIRTUAL_TOUCH, -1,
+					false);
+
+		}
+	}
+
+	@Override
+	public void onUpdateIO(int device, int type, int code, int value,
+			int timestamp) {
+
+		if (device == deviceIndex) {
+
+			// adapting to the real screen coords
 			if (code == 53)
 				value = CoreController.xToScreenCoord(value);
 			if (code == 54) {
 				value = CoreController.yToScreenCoord(value);
 			}
-			event[0] = type;
-			event[1] = code;
-			event[2] = value;
-			break;
-		}
 
-		return event;
+			CoreController.injectToVirtual(type, code, value);
+		}
+	}
+
+	@Override
+	public int registerIOReceiver() {
+		return CoreController.registerIOReceiver(this);
+
 	}
 }

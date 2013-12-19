@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 import mswat.core.CoreController;
 import mswat.core.activityManager.Node;
+import mswat.interfaces.ContentReceiver;
+import mswat.interfaces.IOReceiver;
 import mswat.touch.TouchPatternRecognizer;
 import android.content.Context;
 import android.content.Intent;
@@ -18,26 +20,25 @@ import android.util.Log;
  * @author Andre Rodrigues
  * 
  */
-public class AutoNavTouch extends ControlInterface {
+public class AutoNavTouch extends ControlInterface implements IOReceiver,
+		ContentReceiver {
+
 	private final String LT = "AutoNav";
 	private int time = 1500;
-	private static boolean navigate = true;
-	private static NavTree navTree;
-	private final static int NAV_TREE_ROW = 0;
-	private final static int NAV_TREE_LINE = 1;
-	// if the control interface is active or not
-	private static boolean isEnable = false;
-	private static int navMode = NAV_TREE_LINE;
+	private boolean navigate = true;
+	private NavTree navTree;
+	private final int NAV_TREE_ROW = 0;
+	private final int NAV_TREE_LINE = 1;
+	private int navMode = NAV_TREE_LINE;
+
+	private TouchPatternRecognizer tpr;
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		// Triggered when the service starts
 		if (intent.getAction().equals("mswat_init")
 				&& intent.getExtras().get("controller").equals("autoNav")) {
-			Log.d(LT, "MSWaT INIT");
-
-			// enable interface
-			isEnable = true;
+			Log.d(LT, "Auto Navigation initialised");
 
 			// starts monitoring touchscreen
 			int deviceIndex = CoreController.monitorTouch();
@@ -46,51 +47,67 @@ public class AutoNavTouch extends ControlInterface {
 			CoreController.commandIO(CoreController.SET_BLOCK, deviceIndex,
 					true);
 
+			// register receivers
+			registerContentReceiver();
+			registerIOReceiver();
+			
+
+			// initialise touch pattern Recogniser
+			tpr = new TouchPatternRecognizer();
+
 			// initialise line/row navigation controller
 			if (navTree == null)
 				navTree = new NavTree();
 			autoNav();
 
-		} else {
-			if (isEnable) {
-				// Triggered with every IO monitor message
-				if (intent.getAction().equals("monitor")) {
+		} else if (intent.getAction().equals("mswat_stop")) {
+			Log.d(LT, "MSWaT STOP");
+			navigate = false;
+			CoreController.clearHightlights();
+		}
+	}
 
-					// Debugg purposes stop the service
-					int type = intent.getExtras().getInt("type");
-					switch (type) {
-					case TouchPatternRecognizer.LONGPRESS:
-						// Stops service
-						CoreController.stopService();
-						navigate = false;
-						break;
-					}
+	@Override
+	public boolean registerContentReceiver() {
+		return CoreController.registerContentReceiver(this);
 
-					// either change navigation mode or select current focused
-					// node
-					if (navMode == NAV_TREE_LINE) {
-						navMode = NAV_TREE_ROW;
-					} else {
-						navMode = NAV_TREE_LINE;
-						focusIndex(navTree.getCurrentIndex());
-						selectCurrent();
-					}
+	}
 
-				} else {
-					// receives content update info and requests an update to
-					// the
-					// current auto nav controller
-					if (intent.getAction().equals("contentUpdate")) {
-						if (navTree == null)
-							navTree = new NavTree();
+	@Override
+	public int registerIOReceiver() {
+		return CoreController.registerIOReceiver(this);
+	}
 
-						createNavList(CoreController.getContent());
-					} else if (intent.getAction().equals("mswat_stop")) {
-						Log.d(LT, "MSWaT STOP");
-						navigate = false;
-						CoreController.clearHightlights();
-					}
-				}
+	@Override
+	public void onUpdateContent(ArrayList<Node> content) {
+		if (navTree == null)
+			navTree = new NavTree();
+		createNavList(content);
+	}
+
+	@Override
+	public void onUpdateIO(int device, int type, int code, int value,
+			int timestamp) {
+		// Debugg purposes stop the service
+		int touchType;
+		if ((touchType = tpr.store(type, code, value, timestamp)) != -1) {
+
+			switch (touchType) {
+			case TouchPatternRecognizer.LONGPRESS:
+				// Stops service
+				CoreController.stopService();
+				navigate = false;
+				break;
+			}
+
+			// either change navigation mode or select current focused
+			// node
+			if (navMode == NAV_TREE_LINE) {
+				navMode = NAV_TREE_ROW;
+			} else {
+				navMode = NAV_TREE_LINE;
+				focusIndex(navTree.getCurrentIndex());
+				selectCurrent();
 			}
 		}
 	}
@@ -113,9 +130,11 @@ public class AutoNavTouch extends ControlInterface {
 			public void run() {
 
 				Node n;
+
 				while (navigate) {
 					SystemClock.sleep(time);
 					if (navTree.available()) {
+
 						switch (navMode) {
 						case NAV_TREE_LINE:
 							n = navTree.nextLineStart();
@@ -192,6 +211,7 @@ public class AutoNavTouch extends ControlInterface {
 				aux.add(list.get(0));
 				node = list.get(0);
 				for (int i = 1; i < size; i++) {
+					// TODO mudar verificação para ver se esta dentro dos bounds
 					if (list.get(i).getY() == node.getY()) {
 						aux.add(list.get(i));
 						node = list.get(i);

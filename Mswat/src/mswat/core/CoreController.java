@@ -7,6 +7,8 @@ import mswat.core.activityManager.Node;
 import mswat.core.activityManager.NodeListController;
 import mswat.core.feedback.FeedBack;
 import mswat.core.ioManager.Monitor;
+import mswat.interfaces.ContentReceiver;
+import mswat.interfaces.IOReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -30,6 +32,10 @@ public class CoreController {
 	private static Monitor monitor;
 	private static String controller;
 
+	// List of receivers
+	private static ArrayList<IOReceiver> ioReceivers;
+	private static ArrayList<ContentReceiver> contentReceivers;
+
 	// Context
 	private static HierarchicalService hs;
 
@@ -45,7 +51,7 @@ public class CoreController {
 	public final static int CREATE_VIRTUAL_TOUCH = 2;
 	public final static int SETUP_TOUCH = 3;
 	public final static int SET_TOUCH_RAW = 4;
-	public final static int FOWARD_TO_VIRTUAL=5;
+	public final static int FOWARD_TO_VIRTUAL = 5;
 
 	// Mapped screen resolution
 	public static double M_WIDTH;
@@ -62,19 +68,28 @@ public class CoreController {
 	 * @param monitor
 	 * @param hierarchicalService
 	 * @param controller
-	 * @param waitForCalibration 
+	 * @param waitForCalibration
 	 */
 	public CoreController(NodeListController nController, Monitor monitor,
-			HierarchicalService hierarchicalService, String controller, boolean waitForCalibration) {
+			HierarchicalService hierarchicalService, String controller,
+			boolean waitForCalibration) {
 		CoreController.monitor = monitor;
 		CoreController.nController = nController;
 		hs = hierarchicalService;
-		
+
+		// initialise arrayListReceivers
+		ioReceivers = new ArrayList<IOReceiver>();
+		contentReceivers = new ArrayList<ContentReceiver>();
 		
 		// Broadcast the init signal
-		if(!waitForCalibration)
+		if (!waitForCalibration){
+			Log.d(LT, "STARTING SERVICE");
+
 			startService(controller);
-		this.controller=controller;
+		}
+		else
+			Log.d(LT, "CALIBRATION");
+		this.controller = controller;
 
 		// get screen resolution
 		WindowManager wm = (WindowManager) hierarchicalService
@@ -94,6 +109,24 @@ public class CoreController {
 	 ************************************* */
 
 	/**
+	 * Io event propagated to io receivers
+	 * 
+	 * @param device
+	 * @param type
+	 * @param code
+	 * @param value
+	 * @param timestamp
+	 */
+	public static void updateIOReceivers(int device, int type, int code,
+			int value, int timestamp) {
+		int size = ioReceivers.size();
+		for (int i = 0; i < size; i++) {
+			ioReceivers.get(i).onUpdateIO(device, type, code, value, timestamp);
+		}
+
+	}
+
+	/**
 	 * Broadcasts raw monitor messages
 	 * 
 	 * @param device
@@ -103,11 +136,12 @@ public class CoreController {
 	 * @param value
 	 * @param timestamp
 	 */
-	public static void monitorMessages(final String[] devices, final int[] types,
-			final int[] codes, final int[] values, final int[] timestamps) {
+	public static void monitorMessages(final String[] devices,
+			final int[] types, final int[] codes, final int[] values,
+			final int[] timestamps) {
 		Thread b = new Thread(new Runnable() {
 			public void run() {
-				
+
 				if (hs != null) {
 
 					// Broadcast event
@@ -178,13 +212,7 @@ public class CoreController {
 				case SETUP_TOUCH:
 					monitor.setupTouch(index);
 					break;
-				case FOWARD_TO_VIRTUAL:
-					monitor.setFowardToVirtual(state);
-					break;
-				case SET_TOUCH_RAW:
-					Log.d(LT, "Set raw touch data: " + state);
-					monitor.setTouchRawData(state);
-					break;
+
 				}
 			}
 		});
@@ -233,6 +261,17 @@ public class CoreController {
 	 * 
 	 ************************************************** 
 	 **/
+	
+	/**
+	 * Content update event propagated to content update receivers
+	 * @param content
+	 */
+	public static void updateContentReceivers(ArrayList<Node> content) {
+		int size = contentReceivers.size();
+		for (int i = 0; i < size; i++) {
+			contentReceivers.get(i).onUpdateContent(content);
+		}
+	}
 
 	/**
 	 * Broadcasts node controller messages Message format [ node, node] Node
@@ -444,20 +483,44 @@ public class CoreController {
 		intent.putExtra("controller", controller);
 		hs.sendBroadcast(intent);
 	}
-	
-	public void setCalibration(){
+
+	public void setCalibration() {
 		monitor.setCalibration();
 	}
-	
-	public static void stopCalibration(){
+
+	public static void stopCalibration() {
 		monitor.stopCalibration();
 		startService(controller);
 	}
 
 	public static void setScreenSize(int width, int height) {
-		CoreController.S_HEIGHT =width;
+		CoreController.S_HEIGHT = width;
 		CoreController.S_WIDTH = height;
-		hs.storeScreenSize(width, height );
+		hs.storeScreenSize(width, height);
+	}
+
+	/**
+	 * Register IO events receiver
+	 * 
+	 * @param ioReceiver
+	 * @return
+	 */
+	public static int registerIOReceiver(IOReceiver ioReceiver) {
+		int size = ioReceivers.size();
+		ioReceivers.add(ioReceiver);
+		return size;
+	}
+
+	/**
+	 * Register content update receiver
+	 * 
+	 * @param contentReceiver
+	 * @return
+	 */
+	public static boolean registerContentReceiver(
+			ContentReceiver contentReceiver) {
+		return contentReceivers.add(contentReceiver);
+		
 	}
 
 }
