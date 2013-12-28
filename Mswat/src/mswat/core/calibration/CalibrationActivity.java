@@ -1,25 +1,20 @@
 package mswat.core.calibration;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+
 
 import mswat.core.CoreController;
 import mswat.core.activityManager.R;
 import android.os.Bundle;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
-import android.view.Menu;
+
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
 
 public class CalibrationActivity extends Activity {
 
