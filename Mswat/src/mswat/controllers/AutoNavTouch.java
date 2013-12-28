@@ -24,7 +24,7 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 		ContentReceiver {
 
 	private final String LT = "AutoNav";
-	private int time = 1500;
+	private int time = 3000;
 	private boolean navigate = true;
 	private NavTree navTree;
 	private final int NAV_TREE_ROW = 0;
@@ -50,7 +50,6 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 			// register receivers
 			registerContentReceiver();
 			registerIOReceiver();
-			
 
 			// initialise touch pattern Recogniser
 			tpr = new TouchPatternRecognizer();
@@ -90,7 +89,7 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 			int timestamp) {
 		// Debugg purposes stop the service
 		int touchType;
-		if ((touchType = tpr.store(type, code, value, timestamp)) != -1) {
+		if ((touchType = tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
 
 			switch (touchType) {
 			case TouchPatternRecognizer.LONGPRESS:
@@ -130,6 +129,7 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 			public void run() {
 
 				Node n;
+				CoreController.home();
 
 				while (navigate) {
 					SystemClock.sleep(time);
@@ -138,8 +138,9 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 						switch (navMode) {
 						case NAV_TREE_LINE:
 							n = navTree.nextLineStart();
+						
 							if (n != null) {
-
+								
 								if (n.getName().equals("SCROLL")) {
 									CoreController.textToSpeech("SCROLL");
 									CoreController.hightlight(0, 0,
@@ -147,14 +148,15 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 											(int) CoreController.S_WIDTH,
 											(int) CoreController.S_HEIGHT,
 											Color.LTGRAY);
-								} else
+								} else{
+									CoreController.textToSpeech(n.getName() + " Linha");
 									CoreController.hightlight(
 											n.getBounds().top - 40, 0,
 											(float) 0.6,
 											(int) CoreController.S_WIDTH, n
 													.getBounds().height(),
 											Color.BLUE);
-
+								}
 							}
 							break;
 						case NAV_TREE_ROW:
@@ -196,7 +198,9 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 		private int[] index = new int[2];
 
 		private boolean changedLine = false;
-
+		
+		private int minBoundTop=-1;
+		private int maxBoundBot=-1;
 		/**
 		 * Updates navigation tree with the current content
 		 */
@@ -210,16 +214,28 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 			if (size > 0) {
 				aux.add(list.get(0));
 				node = list.get(0);
+				minBoundTop=node.getBounds().top;
+				maxBoundBot= node.getBounds().bottom;
 				for (int i = 1; i < size; i++) {
-					// TODO mudar verificação para ver se esta dentro dos bounds
-					if (list.get(i).getY() == node.getY()) {
+					
+					if (list.get(i).getY() < maxBoundBot
+							&& list.get(i).getY() > minBoundTop) {
+						if(list.get(i).getBounds().top<minBoundTop){
+							minBoundTop= list.get(i).getBounds().top;
+						}
+						if(list.get(i).getBounds().bottom > maxBoundBot){
+							minBoundTop= list.get(i).getBounds().bottom;
+						}
 						aux.add(list.get(i));
 						node = list.get(i);
 					} else {
+						
 						navTree.add(aux);
 						aux = new ArrayList<Node>();
 						aux.add(list.get(i));
 						node = list.get(i);
+						minBoundTop=node.getBounds().top;
+						maxBoundBot= node.getBounds().bottom;
 					}
 
 				}
@@ -284,10 +300,13 @@ public class AutoNavTouch extends ControlInterface implements IOReceiver,
 				return navTree.get(index[0]).get(index[1]);
 		}
 
-		/*
-		 * Node getCurrentNode() { if (navTree.size() > 0 && index[0] > -1) {
-		 * return navTree.get(index[0]).get(index[1]); } return null; }
-		 */
+		Node getCurrentNode() {
+			if (navTree.size() > 0 && index[0] > -1 && index[1] > -1) {
+				Log.d(LT, "Auto Navigation initialised:" + index[0]);
+				return navTree.get(index[0]).get(index[1]);
+			}
+			return null;
+		}
 
 	}
 

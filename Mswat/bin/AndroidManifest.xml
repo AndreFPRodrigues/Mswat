@@ -64,9 +64,22 @@
                 <action android:name="mswat_stop" />
             </intent-filter>
         </receiver>
+          <receiver
+              android:name="mswat.core.logger.Logger"
+              android:enabled="true" >
+              <intent-filter>
+                  <action android:name="mswat_init" />
+                  <action android:name="mswat_stop" />
+              </intent-filter>
+          </receiver>
 
         <activity
             android:name="mswat.core.calibration.CalibrationActivity"
+            android:label="@string/title_activity_calibration" >
+        </activity>
+        
+        <activity
+            android:name="mswat.core.calibration.CalibrationScreen"
             android:label="@string/title_activity_calibration" >
         </activity>
     </application>

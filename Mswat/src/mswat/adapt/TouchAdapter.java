@@ -46,7 +46,8 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 			if (code == 54) {
 				value = CoreController.yToScreenCoord(value);
 			}
-
+			
+			//adapt values before injecting
 			CoreController.injectToVirtual(type, code, value);
 		}
 	}

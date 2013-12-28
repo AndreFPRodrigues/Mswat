@@ -25,14 +25,13 @@ public class Monitor {
 	// Core controller
 	CoreController cc;
 
-	Logger logger;
 
 	private int touchIndex;
 
 	private TouchPatternRecognizer tpr = new TouchPatternRecognizer();
 
 	boolean monitoring[];
-	boolean logging;
+	
 
 	private static int IOMessagesThreshold = 50;
 
@@ -47,16 +46,12 @@ public class Monitor {
 	 * 
 	 * @param logging
 	 */
-	public Monitor(boolean logging, HierarchicalService hs, boolean broadcastIO) {
+	public Monitor( HierarchicalService hs, boolean broadcastIO) {
 		Events ev = new Events();
 		dev = ev.Init();
 		monitoring = new boolean[dev.size()];
-		this.logging = logging;
+		
 		autoSetTouch();
-		if (logging) {
-			logger = new Logger(hs);
-			monitorTouch();
-		}
 
 		this.broadcastIO = broadcastIO;
 
@@ -64,12 +59,15 @@ public class Monitor {
 
 	/**
 	 * Log keystroke if logger is enable
-	 * 
+	 * TODO
 	 * @param keypressed
 	 */
 	public void registerKeystroke(String keypressed) {
-		if (logging)
-			logger.registerTouch("Previous Keystroke: " + keypressed);
+		
+		//TODO Log keystrokes
+		CoreController.updateLoggers("Previous Keystroke: " + keypressed);
+		//if (logging)
+			//Logger.registerTouch("Previous Keystroke: " + keypressed);
 
 	}
 
@@ -128,7 +126,6 @@ public class Monitor {
 			public void run() {
 				Looper.prepare();
 				InputDevice idev = dev.get(touchIndex);
-				Log.d(LT, "YEP");
 				while (calibrating) {
 					if (idev.getOpen() && idev.getPollingEvent() == 0) {
 
@@ -137,7 +134,7 @@ public class Monitor {
 						int value = idev.getSuccessfulPollingValue();
 
 						if (calibrating)
-							tpr.store(type, code, value, idev.getTimeStamp());
+							tpr.identifyOnRelease(type, code, value, idev.getTimeStamp());
 
 					}
 				}

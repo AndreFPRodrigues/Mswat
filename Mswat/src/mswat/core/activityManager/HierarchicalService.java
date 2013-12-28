@@ -215,9 +215,11 @@ public class HierarchicalService extends AccessibilityService {
 
 	@Override
 	public void onInterrupt() {
-		monitor.stop();
-		FeedBack.stop();
-		this.stopSelf();
+		stopService();
+	}
+	@Override
+	public void onDestroy() {
+		stopService();
 	}
 
 	public void stopService() {
@@ -263,9 +265,6 @@ public class HierarchicalService extends AccessibilityService {
 		// shared preferences
 		sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 		logging = sharedPref.getBoolean(ServicePreferences.LOG, false);
-		
-		
-
 		boolean audioFeedBack = sharedPref.getBoolean(ServicePreferences.AUDIO,
 				false);
 		boolean visualFeedBack = sharedPref.getBoolean(
@@ -293,16 +292,14 @@ public class HierarchicalService extends AccessibilityService {
 		// initialise feedback
 		fb = new FeedBack(this, windowManager, params);
 
-		// TODO auto feedback values from shared preferences
 		nlc = new NodeListController(this, audioFeedBack, visualFeedBack);
 
-		// TODO logging from shared preferences
 		// initialise monitor
-		monitor = new Monitor(logging, this, broadcastIO);
+		monitor = new Monitor( this, broadcastIO);
 
 		// initialise coreController
 		CoreController cc = new CoreController(nlc, monitor, this, controller,
-				calibration);
+				calibration, logging);
 
 		// starts calibration activity
 		if (calibration) {
@@ -364,7 +361,7 @@ public class HierarchicalService extends AccessibilityService {
 	}
 
 	// go to home screen
-	private void home() {
+	public void home() {
 		performGlobalAction(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
 
 	}

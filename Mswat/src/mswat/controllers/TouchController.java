@@ -56,7 +56,7 @@ public class TouchController extends ControlInterface implements IOReceiver {
 			int timestamp) {
 
 		int touchType;
-		if ((touchType = tpr.store(type, code, value, timestamp)) != -1) {
+		if ((touchType = tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
 
 			switch (touchType) {
 			case TouchPatternRecognizer.SLIDE:
@@ -75,32 +75,5 @@ public class TouchController extends ControlInterface implements IOReceiver {
 
 	}
 
-	/**
-	 * Returns message describing the touch event
-	 * 
-	 * @param type
-	 * @return
-	 */
-	private String touchMessage(int type) {
-		int x = tpr.getLastX();
-		int y = tpr.getLastY();
-		String s = null;
-		switch (type) {
-		case TouchPatternRecognizer.TOUCHED:
-			s = "Touched: " + CoreController.getNodeAt(x, y) + " x:" + x
-					+ " y:" + y + " Pressure:" + tpr.getPressure()
-					+ " TouchSize:" + tpr.getTouchSize();
-			break;
-		case TouchPatternRecognizer.SLIDE:
-			s = "Slide: " + tpr.getOriginX() + " x" + tpr.getOriginY()
-					+ " y --> " + x + "x " + y + "y";
-			break;
-		case TouchPatternRecognizer.LONGPRESS:
-			s = "LongPress: " + x + "x " + y + "y" + " Pressure:"
-					+ tpr.getPressure() + " TouchSize:" + tpr.getTouchSize();
-			break;
-		}
-		return s;
-	}
 
 }

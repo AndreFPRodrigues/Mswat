@@ -7,6 +7,7 @@ import mswat.core.activityManager.Node;
 import mswat.core.activityManager.NodeListController;
 import mswat.core.feedback.FeedBack;
 import mswat.core.ioManager.Monitor;
+import mswat.core.logger.Logger;
 import mswat.interfaces.ContentReceiver;
 import mswat.interfaces.IOReceiver;
 import android.content.Context;
@@ -30,11 +31,15 @@ public class CoreController {
 	// Modules where to forward messages
 	private static NodeListController nController;
 	private static Monitor monitor;
+	
 	private static String controller;
+	private static boolean logging;
 
 	// List of receivers
 	private static ArrayList<IOReceiver> ioReceivers;
 	private static ArrayList<ContentReceiver> contentReceivers;
+	private static ArrayList<Logger> loggers;
+
 
 	// Context
 	private static HierarchicalService hs;
@@ -72,7 +77,7 @@ public class CoreController {
 	 */
 	public CoreController(NodeListController nController, Monitor monitor,
 			HierarchicalService hierarchicalService, String controller,
-			boolean waitForCalibration) {
+			boolean waitForCalibration, boolean logging) {
 		CoreController.monitor = monitor;
 		CoreController.nController = nController;
 		hs = hierarchicalService;
@@ -81,16 +86,22 @@ public class CoreController {
 		ioReceivers = new ArrayList<IOReceiver>();
 		contentReceivers = new ArrayList<ContentReceiver>();
 		
+		this.controller = controller;
+		this.logging=logging;
+		
+		Log.d(LT,"log:" + logging );
+		
 		// Broadcast the init signal
 		if (!waitForCalibration){
 			Log.d(LT, "STARTING SERVICE");
 
-			startService(controller);
+			startService(controller, logging);
 		}
 		else
 			Log.d(LT, "CALIBRATION");
-		this.controller = controller;
-
+		
+		
+		
 		// get screen resolution
 		WindowManager wm = (WindowManager) hierarchicalService
 				.getSystemService(Context.WINDOW_SERVICE);
@@ -122,6 +133,20 @@ public class CoreController {
 		int size = ioReceivers.size();
 		for (int i = 0; i < size; i++) {
 			ioReceivers.get(i).onUpdateIO(device, type, code, value, timestamp);
+		}
+
+	}
+	
+
+	/**
+	 * Keystrokes propagated to loggers 
+	 * 
+	 * @param record string representing the keystroke
+	 */
+	public static void updateLoggers(String record) {
+		int size = loggers.size();
+		for (int i = 0; i < size; i++) {
+			loggers.get(i).logToFile(record);
 		}
 
 	}
@@ -186,8 +211,9 @@ public class CoreController {
 
 	/**
 	 * Forwards the message to the appropriate component
-	 * 
-	 * @param message
+	 * @param command - SET_BLOCK/MONITOR_DEV/CREATE_VIRTUAL_TOUCH/SETUP_TOUCH
+	 * @param index - device index for SET_BLOCK/MONITOR_DEV/SETUP_TOUCH
+	 * @param state - state SET_BLOCK/MONITOR_DEV
 	 */
 	public static void commandIO(final int command, final int index,
 			final boolean state) {
@@ -223,9 +249,9 @@ public class CoreController {
 	 * Inject event into touch virtual drive
 	 * 
 	 * @requires virtual touch driver created
-	 * @param t
-	 * @param c
-	 * @param v
+	 * @param t type
+	 * @param c code
+	 * @param v value
 	 */
 	public static void injectToVirtual(int t, int c, int v) {
 		monitor.injectToVirtual(t, c, v);
@@ -298,9 +324,9 @@ public class CoreController {
 	}
 
 	/**
-	 * Forwards the message to the appropriate component
-	 * 
-	 * @param message
+	 *  Forwards the message to the appropriate component
+	 * @param command NAV_NEXT/NAV_PREV/SELECT_CURRENT/FOCUS_INDEX
+	 * @param index - FOCUS_INDEX
 	 */
 	public static void commandNav(final int command, final int index) {
 		Thread b = new Thread(new Runnable() {
@@ -476,11 +502,12 @@ public class CoreController {
 		hs.stopService();
 	}
 
-	private static void startService(String controller) {
+	private static void startService(String controller, boolean logging) {
 		// Broadcast event
 		Intent intent = new Intent();
 		intent.setAction("mswat_init");
 		intent.putExtra("controller", controller);
+		intent.putExtra("logging", logging);
 		hs.sendBroadcast(intent);
 	}
 
@@ -490,7 +517,7 @@ public class CoreController {
 
 	public static void stopCalibration() {
 		monitor.stopCalibration();
-		startService(controller);
+		startService(controller, logging);
 	}
 
 	public static void setScreenSize(int width, int height) {
@@ -521,6 +548,24 @@ public class CoreController {
 			ContentReceiver contentReceiver) {
 		return contentReceivers.add(contentReceiver);
 		
+	}
+	/**
+	 * Register logger receiver (receives keystrokes info)
+	 * 
+	 * @param logger
+	 * @return
+	 */
+	public static boolean registerLogger(
+			Logger logger) {
+		return loggers.add(logger);
+		
+	}
+	
+	/**
+	 * Returns to home 
+	 */
+	public  static void home(){
+		hs.home();
 	}
 
 }
