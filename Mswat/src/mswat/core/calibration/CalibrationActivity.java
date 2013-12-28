@@ -55,33 +55,11 @@ public class CalibrationActivity extends Activity {
 				CoreController.commandIO(CoreController.SETUP_TOUCH, position, false);
 				Intent i = new Intent(getBaseContext(), CalibrationScreen.class);
 				startActivity(i);
+				finish();
 			}
 
 		});
 	}
 
-	/*
-	 * public void addListenerOnButton() {
-	 * 
-	 * imageButton = (ImageButton) findViewById(R.id.imageButton1);
-	 * 
-	 * imageButton.setOnClickListener(new OnClickListener() {
-	 * 
-	 * @Override public void onClick(View arg0) {
-	 * 
-	 * CoreController.stopCalibration(); close();
-	 * 
-	 * }
-	 * 
-	 * });
-	 * 
-	 * }
-	 * 
-	 * public void close(){ this.finish(); }
-	 * 
-	 * @Override public boolean onCreateOptionsMenu(Menu menu) { // Inflate the
-	 * menu; this adds items to the action bar if it is present.
-	 * getMenuInflater().inflate(R.menu.calibration, menu); return true; }
-	 */
 
 }
