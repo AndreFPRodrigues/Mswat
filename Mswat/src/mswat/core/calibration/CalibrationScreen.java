@@ -3,14 +3,17 @@ package mswat.core.calibration;
 import mswat.core.CoreController;
 import mswat.core.activityManager.R;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.app.Activity;
+import android.app.KeyguardManager;
+import android.app.KeyguardManager.KeyguardLock;
 
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 
 import android.widget.ImageButton;
-
 
 public class CalibrationScreen extends Activity {
 
@@ -22,6 +25,8 @@ public class CalibrationScreen extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_calibration);
 		addListenerOnButton();
+
+	
 
 	}
 

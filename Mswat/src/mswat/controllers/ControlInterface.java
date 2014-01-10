@@ -16,28 +16,28 @@ public abstract class ControlInterface extends BroadcastReceiver{
 	/**
 	 * Send navNext message
 	 */
-	void navNext(){
+	protected	void navNext(){
 		CoreController.commandNav(CoreController.NAV_NEXT,0);
 	}
 	
 	/**
 	 * Send navPrev message
 	 */
-	void navPrev(){
+	protected	void navPrev(){
 		CoreController.commandNav(CoreController.NAV_PREV,0); 
 	}
 	
 	/**
 	 * Send selectCurrent message
 	 */
-	void selectCurrent(){
+	protected	void selectCurrent(){
 		CoreController.commandNav(CoreController.SELECT_CURRENT,0);
 	}
 	
 	/**
 	 * Send focusIndex message
 	 */
-	void focusIndex(int index){
+	protected void focusIndex(int index){
 		CoreController.commandNav(CoreController.FOCUS_INDEX,index);
  
 	}

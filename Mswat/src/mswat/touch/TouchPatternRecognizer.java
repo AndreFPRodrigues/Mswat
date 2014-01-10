@@ -89,7 +89,7 @@ public class TouchPatternRecognizer {
 	 *         slide identified (2) -> LongPress identified
 	 */
 	public int identifyOnRelease(int type, int code, int value, int timestamp) {
-		// Log.d(LT," "+ touches.size());
+		 Log.d(LT,"t:"+ type+ " c:" + code + " v:"+ value);
 		if(code==TRACKING_ID){
 			identifier=value;
 		}else

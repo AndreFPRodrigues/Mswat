@@ -6,12 +6,13 @@ import java.util.List;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
-import mswat.adapt.TouchAdapter;
 import mswat.core.CoreController;
 import mswat.core.activityManager.HierarchicalService;
 import mswat.core.ioManager.Events.InputDevice;
 import mswat.core.logger.Logger;
+import mswat.examples.adapt.TouchAdapter;
 import mswat.touch.TouchPatternRecognizer;
 
 public class Monitor {
@@ -26,7 +27,7 @@ public class Monitor {
 	CoreController cc;
 
 
-	private int touchIndex;
+	private int touchIndex=-1;
 
 	private TouchPatternRecognizer tpr = new TouchPatternRecognizer();
 
@@ -43,15 +44,17 @@ public class Monitor {
 
 	/**
 	 * Initialises list of devices Initialises Logger if logging is true
+	 * @param touchIndex2 
 	 * 
 	 * @param logging
 	 */
-	public Monitor( HierarchicalService hs, boolean broadcastIO) {
+	public Monitor( HierarchicalService hs, boolean broadcastIO, int touchIndex) {
 		Events ev = new Events();
 		dev = ev.Init();
+		
+		this.touchIndex= touchIndex;
 		monitoring = new boolean[dev.size()];
 		
-		autoSetTouch();
 
 		this.broadcastIO = broadcastIO;
 
@@ -124,7 +127,11 @@ public class Monitor {
 		Thread b = new Thread(new Runnable() {
 
 			public void run() {
+				TouchPatternRecognizer tp= new TouchPatternRecognizer();
 				Looper.prepare();
+				do{
+					SystemClock.sleep(500);
+				}while (touchIndex==-1);
 				InputDevice idev = dev.get(touchIndex);
 				while (calibrating) {
 					if (idev.getOpen() && idev.getPollingEvent() == 0) {
@@ -134,16 +141,16 @@ public class Monitor {
 						int value = idev.getSuccessfulPollingValue();
 
 						if (calibrating)
-							tpr.identifyOnRelease(type, code, value, idev.getTimeStamp());
+							tp.identifyOnRelease(type, code, value, idev.getTimeStamp());
 
 					}
 				}
 
-				CoreController.setScreenSize(tpr.getLastX() + 25,
-						tpr.getLastY() + 125);
+				CoreController.setScreenSize(tp.getLastX() + 25,
+						tp.getLastY() + 125);
 
-				//Log.d(LT, "height:" + CoreController.S_HEIGHT + " width:"
-					//	+ CoreController.S_WIDTH);
+				Log.d(LT, "height:" + CoreController.S_HEIGHT + " width:"
+						+ CoreController.S_WIDTH);
 
 			}
 		});
@@ -316,20 +323,7 @@ public class Monitor {
 
 	}
 
-	/**
-	 * Sets the touchIndex with the index value from the touchscreen if the
-	 * touchscreen is labeled with either "input" or "touch"
-	 */
-	private void autoSetTouch() {
-		touchIndex = -1;
-		for (int i = 0; i < dev.size(); i++) {
-			if (dev.get(i).getName().contains("input")
-					|| dev.get(i).getName().contains("touch")) {
-				touchIndex = i;
-				return;
-			}
-		}
-	}
+	
 
 
 

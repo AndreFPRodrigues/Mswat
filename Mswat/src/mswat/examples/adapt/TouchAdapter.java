@@ -1,4 +1,4 @@
-package mswat.adapt;
+package mswat.examples.adapt;
 
 import mswat.core.CoreController;
 import mswat.interfaces.IOReceiver;

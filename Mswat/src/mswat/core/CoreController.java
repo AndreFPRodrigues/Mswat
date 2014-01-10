@@ -10,6 +10,9 @@ import mswat.core.ioManager.Monitor;
 import mswat.core.logger.Logger;
 import mswat.interfaces.ContentReceiver;
 import mswat.interfaces.IOReceiver;
+import mswat.interfaces.NotificationReceiver;
+import android.app.KeyguardManager;
+import android.app.KeyguardManager.KeyguardLock;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -17,6 +20,8 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -31,15 +36,16 @@ public class CoreController {
 	// Modules where to forward messages
 	private static NodeListController nController;
 	private static Monitor monitor;
-	
+
 	private static String controller;
 	private static boolean logging;
 
 	// List of receivers
 	private static ArrayList<IOReceiver> ioReceivers;
 	private static ArrayList<ContentReceiver> contentReceivers;
-	private static ArrayList<Logger> loggers;
+	private static ArrayList<NotificationReceiver> notificationReceivers;
 
+	private static ArrayList<Logger> loggers;
 
 	// Context
 	private static HierarchicalService hs;
@@ -66,6 +72,9 @@ public class CoreController {
 	public static double S_WIDTH = 1024;
 	public static double S_HEIGHT = 960;
 
+	// keyboard active
+	public static boolean keyboardState = false;
+
 	/**
 	 * Initialise CoreController
 	 * 
@@ -85,23 +94,21 @@ public class CoreController {
 		// initialise arrayListReceivers
 		ioReceivers = new ArrayList<IOReceiver>();
 		contentReceivers = new ArrayList<ContentReceiver>();
-		
+		notificationReceivers = new ArrayList<NotificationReceiver>();
+
 		this.controller = controller;
-		this.logging=logging;
-		
-		Log.d(LT,"log:" + logging );
-		
+		this.logging = logging;
+
+		Log.d(LT, "log:" + logging);
+
 		// Broadcast the init signal
-		if (!waitForCalibration){
+		if (!waitForCalibration) {
 			Log.d(LT, "STARTING SERVICE");
 
 			startService(controller, logging);
-		}
-		else
+		} else
 			Log.d(LT, "CALIBRATION");
-		
-		
-		
+
 		// get screen resolution
 		WindowManager wm = (WindowManager) hierarchicalService
 				.getSystemService(Context.WINDOW_SERVICE);
@@ -120,6 +127,29 @@ public class CoreController {
 	 ************************************* */
 
 	/**
+	 * Register logger receiver (receives keystrokes info)
+	 * 
+	 * @param logger
+	 * @return
+	 */
+	public static int registerLogger(Logger logger) {
+		loggers.add(logger);
+		return loggers.size() - 1;
+	}
+
+	/**
+	 * Register IO events receiver
+	 * 
+	 * @param ioReceiver
+	 * @return
+	 */
+	public static int registerIOReceiver(IOReceiver ioReceiver) {
+		int size = ioReceivers.size();
+		ioReceivers.add(ioReceiver);
+		return size;
+	}
+
+	/**
 	 * Io event propagated to io receivers
 	 * 
 	 * @param device
@@ -136,12 +166,12 @@ public class CoreController {
 		}
 
 	}
-	
 
 	/**
-	 * Keystrokes propagated to loggers 
+	 * Keystrokes propagated to loggers
 	 * 
-	 * @param record string representing the keystroke
+	 * @param record
+	 *            string representing the keystroke
 	 */
 	public static void updateLoggers(String record) {
 		int size = loggers.size();
@@ -211,9 +241,13 @@ public class CoreController {
 
 	/**
 	 * Forwards the message to the appropriate component
-	 * @param command - SET_BLOCK/MONITOR_DEV/CREATE_VIRTUAL_TOUCH/SETUP_TOUCH
-	 * @param index - device index for SET_BLOCK/MONITOR_DEV/SETUP_TOUCH
-	 * @param state - state SET_BLOCK/MONITOR_DEV
+	 * 
+	 * @param command
+	 *            - SET_BLOCK/MONITOR_DEV/CREATE_VIRTUAL_TOUCH/SETUP_TOUCH
+	 * @param index
+	 *            - device index for SET_BLOCK/MONITOR_DEV/SETUP_TOUCH
+	 * @param state
+	 *            - state SET_BLOCK/MONITOR_DEV
 	 */
 	public static void commandIO(final int command, final int index,
 			final boolean state) {
@@ -249,9 +283,12 @@ public class CoreController {
 	 * Inject event into touch virtual drive
 	 * 
 	 * @requires virtual touch driver created
-	 * @param t type
-	 * @param c code
-	 * @param v value
+	 * @param t
+	 *            type
+	 * @param c
+	 *            code
+	 * @param v
+	 *            value
 	 */
 	public static void injectToVirtual(int t, int c, int v) {
 		monitor.injectToVirtual(t, c, v);
@@ -287,12 +324,32 @@ public class CoreController {
 	 * 
 	 ************************************************** 
 	 **/
-	
+
+	/**
+	 * Register content update receiver
+	 * 
+	 * @param contentReceiver
+	 * @return
+	 */
+	public static int registerContentReceiver(ContentReceiver contentReceiver) {
+		contentReceivers.add(contentReceiver);
+		return contentReceivers.size() - 1;
+	}
+
 	/**
 	 * Content update event propagated to content update receivers
+	 * 
 	 * @param content
 	 */
 	public static void updateContentReceivers(ArrayList<Node> content) {
+		if (keyboardState) {
+
+			if (hs.getResources().getConfiguration().keyboardHidden == hs
+					.getResources().getConfiguration().KEYBOARDHIDDEN_YES) {
+				keyboardState = false;
+				Log.d(LT, "keyboard hidden");
+			}
+		}
 		int size = contentReceivers.size();
 		for (int i = 0; i < size; i++) {
 			contentReceivers.get(i).onUpdateContent(content);
@@ -324,9 +381,12 @@ public class CoreController {
 	}
 
 	/**
-	 *  Forwards the message to the appropriate component
-	 * @param command NAV_NEXT/NAV_PREV/SELECT_CURRENT/FOCUS_INDEX
-	 * @param index - FOCUS_INDEX
+	 * Forwards the message to the appropriate component
+	 * 
+	 * @param command
+	 *            NAV_NEXT/NAV_PREV/SELECT_CURRENT/FOCUS_INDEX
+	 * @param index
+	 *            - FOCUS_INDEX
 	 */
 	public static void commandNav(final int command, final int index) {
 		Thread b = new Thread(new Runnable() {
@@ -447,6 +507,15 @@ public class CoreController {
 	}
 
 	/**
+	 * Text to speech returns false when it stops speaking
+	 * 
+	 * @param text
+	 */
+	public static boolean waitFortextToSpeech(String text) {
+		return FeedBack.waitFortextToSpeech(text);
+	}
+
+	/**
 	 * Text to speech
 	 * 
 	 * @param text
@@ -521,51 +590,74 @@ public class CoreController {
 	}
 
 	public static void setScreenSize(int width, int height) {
-		CoreController.S_HEIGHT = width;
-		CoreController.S_WIDTH = height;
+		CoreController.S_HEIGHT = height;
+		CoreController.S_WIDTH = width;
 		hs.storeScreenSize(width, height);
 	}
 
 	/**
-	 * Register IO events receiver
-	 * 
-	 * @param ioReceiver
-	 * @return
+	 * Returns to home
 	 */
-	public static int registerIOReceiver(IOReceiver ioReceiver) {
-		int size = ioReceivers.size();
-		ioReceivers.add(ioReceiver);
-		return size;
+	public static void home() {
+		hs.home();
 	}
 
 	/**
-	 * Register content update receiver
+	 * Set allow screen to lock
 	 * 
-	 * @param contentReceiver
+	 * @param state
+	 */
+	public static void lockScreen(boolean state) {
+		hs.lockedScreen(state);
+	}
+
+	/**
+	 * Register a notification receiver
+	 * 
+	 * @param nr
 	 * @return
 	 */
-	public static boolean registerContentReceiver(
-			ContentReceiver contentReceiver) {
-		return contentReceivers.add(contentReceiver);
-		
+	public static int registerNotificationReceiver(NotificationReceiver nr) {
+		notificationReceivers.add(nr);
+		return notificationReceivers.size() - 1;
 	}
+
 	/**
-	 * Register logger receiver (receives keystrokes info)
+	 * Update all notifications receivers
 	 * 
-	 * @param logger
-	 * @return
+	 * @param note
 	 */
-	public static boolean registerLogger(
-			Logger logger) {
-		return loggers.add(logger);
-		
+	public static void updateNotificationReceivers(String note) {
+		int size = notificationReceivers.size();
+		for (int i = 0; i < size; i++) {
+			notificationReceivers.get(i).onNotification(note);
+		}
+
 	}
-	
-	/**
-	 * Returns to home 
-	 */
-	public  static void home(){
-		hs.home();
+
+	public static void startKeyboard() {
+		if (!keyboardState) {
+			Log.d(LT, "keyboard visible");
+			char c= ' ';
+			int a = c;
+			Log.d(LT, "valor" + a);
+			keyboardState = true;
+		}
+	}
+
+	public static void callKeyboardWriteChar(int code) {
+		Intent intent = new Intent();
+		intent.setAction("mswat_pressKey");
+		intent.putExtra("code", code);
+		hs.sendBroadcast(intent);
+	}
+
+	public static void callKeyboardWriteString(int[] array) {
+		Intent intent = new Intent();
+		intent.setAction("mswat_writeString");
+		intent.putExtra("codes", array);
+		hs.sendBroadcast(intent);
+		
 	}
 
 }

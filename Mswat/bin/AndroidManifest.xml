@@ -10,6 +10,11 @@
 
     <uses-permission android:name="android.permission.GET_TASKS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    	<uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
+   
+
 
     <application
         android:icon="@drawable/ic_launcher"
@@ -39,24 +44,25 @@
         </activity>
 
         <receiver
-            android:name="mswat.controllers.TouchController"
+            android:name="mswat.examples.controllers.simpletouch.TouchController"
             android:enabled="true" >
             <intent-filter>
                 <action android:name="mswat_init" />
             </intent-filter>
         </receiver>
         <receiver
-            android:name="mswat.controllers.AutoNavTouch"
+            android:name="mswat.examples.controllers.autonav.AutoNavTouch"
             android:enabled="true" >
-            <intent-filter>
+            <intent-filter android:priority="99999" >
                 <action android:name="monitor" />
                 <action android:name="contentUpdate" />
                 <action android:name="mswat_init" />
                 <action android:name="mswat_stop" />
+                <action android:name="android.intent.action.PHONE_STATE" />
             </intent-filter>
         </receiver>
         <receiver
-            android:name="mswat.adapt.TouchAdapter"
+            android:name="mswat.examples.adapt.TouchAdapter"
             android:enabled="true" >
             <intent-filter>
                 <action android:name="monitor" />
@@ -64,20 +70,28 @@
                 <action android:name="mswat_stop" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name="mswat.core.logger.Logger"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="mswat_init" />
+                <action android:name="mswat_stop" />
+            </intent-filter>
+        </receiver>
+        
           <receiver
-              android:name="mswat.core.logger.Logger"
-              android:enabled="true" >
-              <intent-filter>
-                  <action android:name="mswat_init" />
-                  <action android:name="mswat_stop" />
-              </intent-filter>
-          </receiver>
+            android:name="mswat.examples.notificationReceiver.TestNotification"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="mswat_init" />
+                <action android:name="mswat_stop" />
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name="mswat.core.calibration.CalibrationActivity"
             android:label="@string/title_activity_calibration" >
         </activity>
-        
         <activity
             android:name="mswat.core.calibration.CalibrationScreen"
             android:label="@string/title_activity_calibration" >

@@ -9,19 +9,31 @@ import mswat.core.feedback.FeedBack;
 import mswat.core.ioManager.Monitor;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
+import android.app.Activity;
+import android.app.KeyguardManager;
+import android.app.KeyguardManager.KeyguardLock;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.webkit.WebView.FindListener;
+import android.widget.EditText;
 
 public class HierarchicalService extends AccessibilityService {
 
@@ -34,8 +46,10 @@ public class HierarchicalService extends AccessibilityService {
 	private ArrayList<Node> nodeList = new ArrayList<Node>();
 	private ArrayList<Node> checkList = new ArrayList<Node>();
 
+	private EditText editText;
+
 	// node that represents the possibility of sliding
-	private Node scrollNode = null;
+	private ArrayList<Node> scrollNodes = new ArrayList<Node>();
 	// list of install apps icons
 	private ArrayList<AppIcon> appIcons = new ArrayList<AppIcon>();
 
@@ -43,10 +57,11 @@ public class HierarchicalService extends AccessibilityService {
 	private boolean logging = false;
 
 	private SharedPreferences sharedPref;
+	private ServicePreferences servPref;
 	private Monitor monitor;
 	private NodeListController nlc;
 	private FeedBack fb;
-	
+
 	private boolean broadcastContent = false;
 
 	/**
@@ -55,65 +70,88 @@ public class HierarchicalService extends AccessibilityService {
 	 */
 	@Override
 	public void onAccessibilityEvent(AccessibilityEvent event) {
-		AccessibilityNodeInfo source = event.getSource();
-		if (source == null) {
-			return;
-		}
+		//Log.d(LT, event.toString());
 
-		source = getRootParent(source);
-		if (source == null) {
-			return;
-		}
-		currentParent = source;
+		if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)
+			CoreController.updateNotificationReceivers("" + event.getText());
+		else {
 
-		// register keystrokes
-		if (logging
-				&& AccessibilityEvent.eventTypeToString(event.getEventType())
-						.contains("TEXT")) {
+			if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_CLICKED ) {
+				if (event.getClassName().toString().contains("EditText")|| event.getClassName().toString().contains("MultiAutoCompleteTextView")) {					
+					CoreController.startKeyboard();
+				}
+			} else {
 
-			if (event.getRemovedCount() > event.getAddedCount())
-				monitor.registerKeystroke("BackSpace");
-			else {
+				AccessibilityNodeInfo source = event.getSource();
+				if (source == null) {
+					return;
+				}
 
-				if (event.getRemovedCount() != event.getAddedCount()) {
-					// When the before text is a space it needs this to properly
-					// detect the backspace
-					// Bug a string a char follow by a space "t " when using
-					// backspace it detects "t" instead of backspace
-					if ((event.getText().size() - 2) == event.getBeforeText()
-							.length()
-							|| (event.getAddedCount() - event.getRemovedCount()) > 1)
+				
+			
+				source = getRootParent(source);
+				if (source == null) {
+					return;
+				}
+				currentParent = source;
+
+				// register keystrokes
+				if (logging
+						&& AccessibilityEvent.eventTypeToString(
+								event.getEventType()).contains("TEXT")) {
+
+					if (event.getRemovedCount() > event.getAddedCount())
 						monitor.registerKeystroke("BackSpace");
 					else {
-						String keypressed = event.getText().toString();
-						keypressed = ""
-								+ keypressed.charAt(keypressed.length() - 2);
-						if (keypressed.equals(" "))
-							keypressed = "Space";
-						monitor.registerKeystroke(keypressed);
+
+						if (event.getRemovedCount() != event.getAddedCount()) {
+							// When the before text is a space it needs this to
+							// properly
+							// detect the backspace
+							// Bug a string a char follow by a space "t " when
+							// using
+							// backspace it detects "t" instead of backspace
+							if ((event.getText().size() - 2) == event
+									.getBeforeText().length()
+									|| (event.getAddedCount() - event
+											.getRemovedCount()) > 1)
+								monitor.registerKeystroke("BackSpace");
+							else {
+								String keypressed = event.getText().toString();
+								keypressed = ""
+										+ keypressed
+												.charAt(keypressed.length() - 2);
+								if (keypressed.equals(" "))
+									keypressed = "Space";
+								monitor.registerKeystroke(keypressed);
+							}
+						}
+
 					}
+
+				}
+				// update the current content list
+				checkList.clear();
+				scrollNodes.clear();
+				listUpdate(currentParent);
+				if (scrollNodes.size() > 0) {
+
+					checkList.addAll(scrollNodes);
+				}
+
+				if (checkUpdate()) {
+					Log.d(LT, "Updated Tree");
+					nlc.updateList(nodeList);
+					if (broadcastContent)
+						CoreController.nodeMessages(nodeList.toString());
+
+					// Send content update to the receivers
+					CoreController.updateContentReceivers(nodeList);
+					 printViewItens(checkList);
 				}
 
 			}
-
 		}
-		// update the current content list
-		checkList.clear();
-		scrollNode = null;
-		listUpdate(currentParent);
-		if (scrollNode != null)
-			checkList.add(scrollNode);
-
-		if (checkUpdate()) {
-			nlc.updateList(nodeList);
-			if(broadcastContent)
-				CoreController.nodeMessages(nodeList.toString());
-			
-			//Send content update to the receivers
-			CoreController.updateContentReceivers(nodeList);
-		}
-
-		// printViewItens(checkList);
 	}
 
 	/**
@@ -140,15 +178,20 @@ public class HierarchicalService extends AccessibilityService {
 	private synchronized void listUpdate(AccessibilityNodeInfo source) {
 		AccessibilityNodeInfo child;
 		Rect outBounds = new Rect();
-
+		
 		Node n;
+		boolean addScroll = false;
 		for (int i = 0; i < source.getChildCount(); i++) {
 			child = source.getChild(i);
-
+	
 			if (child != null) {
 
-				if (child.isScrollable())
-					scrollNode = new Node((String) "SCROLL", outBounds, child);
+				if (child.isScrollable() && !addScroll) {
+					source.getBoundsInScreen(outBounds);
+					addScroll = true;
+					scrollNodes.add(new Node((String) "SCROLL", outBounds,
+							child));
+				}
 
 				if (child.getChildCount() == 0) {
 
@@ -167,6 +210,7 @@ public class HierarchicalService extends AccessibilityService {
 								n = new Node((String) child.getText()
 										.toString(), outBounds, child);
 
+								// Log.d(LT, n.getAccessNode().toString());
 								n.setIcon(checkIconMatch(child.getText()
 										.toString()));
 
@@ -217,6 +261,7 @@ public class HierarchicalService extends AccessibilityService {
 	public void onInterrupt() {
 		stopService();
 	}
+
 	@Override
 	public void onDestroy() {
 		stopService();
@@ -228,12 +273,23 @@ public class HierarchicalService extends AccessibilityService {
 		this.stopSelf();
 	}
 
+	@Override
+	public boolean onKeyEvent(KeyEvent event) {
+		Log.d(LT, "got one");
+		return true;
+	}
+
 	/**
 	 * Initialise NodeListController Initialise Monitor Initialise
 	 * CoreController Initialise Feedback
 	 */
 	@Override
 	public void onServiceConnected() {
+		// getServiceInfo().flags =
+		// AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE;
+		// getServiceInfo().flags =
+		//AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
+
 		Log.d(LT, "CONNECTED");
 		// Creating the install app icons list
 		PackageManager pm = getPackageManager();
@@ -264,30 +320,32 @@ public class HierarchicalService extends AccessibilityService {
 
 		// shared preferences
 		sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-		logging = sharedPref.getBoolean(ServicePreferences.LOG, false);
-		boolean audioFeedBack = sharedPref.getBoolean(ServicePreferences.AUDIO,
+		servPref = new ServicePreferences();
+		logging = sharedPref.getBoolean(servPref.LOG, false);
+		boolean audioFeedBack = sharedPref.getBoolean(servPref.AUDIO, false);
+		boolean visualFeedBack = sharedPref.getBoolean(servPref.VISUAL, false);
+
+		boolean calibration = sharedPref
+				.getBoolean(servPref.CALIBRATION, false);
+
+		boolean broadcastIO = sharedPref.getBoolean(servPref.BROADCAST_IO,
 				false);
-		boolean visualFeedBack = sharedPref.getBoolean(
-				ServicePreferences.VISUAL, false);
-		
-		boolean calibration = sharedPref.getBoolean(
-				ServicePreferences.CALIBRATION, false);
-		
-		boolean broadcastIO = sharedPref.getBoolean(ServicePreferences.BROADCAST_IO, false);
-		broadcastContent = sharedPref.getBoolean(ServicePreferences.BROADCAST_CONTENT, false);
-		
+		broadcastContent = sharedPref.getBoolean(servPref.BROADCAST_CONTENT,
+				false);
+
+		int touchIndex = sharedPref.getInt(servPref.TOUCH_INDEX, -1);
+
 		if ((sharedPref.getInt("s_width", (int) CoreController.S_WIDTH)) != 0) {
 			CoreController.S_WIDTH = sharedPref.getInt("s_width",
 					(int) CoreController.S_WIDTH);
 			CoreController.S_HEIGHT = sharedPref.getInt("s_height",
-					(int) CoreController.S_HEIGHT);		
-		}else{
+					(int) CoreController.S_HEIGHT);
+		} else {
 			CoreController.S_WIDTH = 1024;
 			CoreController.S_HEIGHT = 960;
 		}
 
-		String controller = sharedPref.getString(ServicePreferences.CONTROLLER,
-				"null");
+		String controller = sharedPref.getString(servPref.CONTROLLER, "null");
 
 		// initialise feedback
 		fb = new FeedBack(this, windowManager, params);
@@ -295,7 +353,7 @@ public class HierarchicalService extends AccessibilityService {
 		nlc = new NodeListController(this, audioFeedBack, visualFeedBack);
 
 		// initialise monitor
-		monitor = new Monitor( this, broadcastIO);
+		monitor = new Monitor(this, broadcastIO, touchIndex);
 
 		// initialise coreController
 		CoreController cc = new CoreController(nlc, monitor, this, controller,
@@ -307,6 +365,7 @@ public class HierarchicalService extends AccessibilityService {
 			Intent i = new Intent(getBaseContext(), CalibrationActivity.class);
 			i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			getApplication().startActivity(i);
+
 		} else {
 			// Goes to home screen (triggers accessibility event to update
 			// current
@@ -352,6 +411,7 @@ public class HierarchicalService extends AccessibilityService {
 					nodeList.clear();
 					nodeList = (ArrayList<Node>) checkList.clone();
 					// checkList.clear();
+
 					return true;
 				}
 			}
@@ -366,10 +426,39 @@ public class HierarchicalService extends AccessibilityService {
 
 	}
 
+	/**
+	 * Register screen size to shared preferences
+	 * 
+	 * @param width
+	 * @param height
+	 */
 	public void storeScreenSize(int width, int height) {
 		sharedPref.edit().putInt("s_width", width);
 		sharedPref.edit().putInt("s_height", height);
 
+	}
+
+	/**
+	 * Register the touch device index to the shared preferences
+	 * 
+	 * @param index
+	 */
+	public void storeTouchIndex(int index) {
+		sharedPref.edit().putInt(servPref.TOUCH_INDEX, index);
+	}
+
+	public void lockedScreen(boolean state) {
+		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+		WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK
+				| PowerManager.ACQUIRE_CAUSES_WAKEUP
+				| PowerManager.ON_AFTER_RELEASE, "INFO");
+		wl.acquire();
+
+		KeyguardManager km = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+		KeyguardLock kl = km.newKeyguardLock("name");
+		kl.disableKeyguard();
+		if (state)
+			kl.reenableKeyguard();
 	}
 
 }

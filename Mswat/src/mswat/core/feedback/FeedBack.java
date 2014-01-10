@@ -6,6 +6,7 @@ import mswat.core.activityManager.HierarchicalService;
 
 import android.graphics.Color;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.util.Log;
@@ -15,35 +16,37 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 public class FeedBack implements OnInitListener {
-	
-	//TTS 
+
+	// TTS
 	static TextToSpeech mTts;
-	
-	//Highlighter
+
+	// Highlighter
 	static Handler hightligherHandler;
-	static // Set Focus manually
+	static// Set Focus manually
 	RelativeLayout overlay;
-	
+
 	static WindowManager windowManager;
 	static LayoutParams params;
-	
+
 	static HierarchicalService hs;
-	
-	public FeedBack(HierarchicalService hs, WindowManager windowManager, LayoutParams params){
-		//TTS
-		FeedBack.hs=hs;
+
+	public FeedBack(HierarchicalService hs, WindowManager windowManager,
+			LayoutParams params) {
+		// TTS
+		FeedBack.hs = hs;
 		mTts = new TextToSpeech(hs, this);
 		onInit(TextToSpeech.SUCCESS);
-		
-		//Highlighter
-		hightligherHandler= new Handler();
-		FeedBack.windowManager= windowManager;
-		FeedBack.params=params;
-		
+
+		// Highlighter
+		hightligherHandler = new Handler();
+		FeedBack.windowManager = windowManager;
+		FeedBack.params = params;
+
 	}
-	
+
 	/**
 	 * Initialise TTS
+	 * 
 	 * @param status
 	 */
 	public void onInit(int status) {
@@ -63,94 +66,107 @@ public class FeedBack implements OnInitListener {
 		}
 
 	}
-	
+
+	/**
+	 * Text to speech
+	 * Wait for tts to end before returning
+	 * @param text
+	 */
+	public static boolean waitFortextToSpeech(String text) {
+		mTts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+		
+		boolean isspeakign = mTts.isSpeaking();
+		do {
+			SystemClock.sleep(200);
+			isspeakign= mTts.isSpeaking();
+		} while (isspeakign);
+
+		return isspeakign;
+
+	}
 	
 	/**
 	 * Text to speech
+	 * 
 	 * @param text
 	 */
-	public static void textToSpeech(String text){
-		mTts.speak(text,TextToSpeech.QUEUE_FLUSH, null);
+	public static void textToSpeech(String text) {
+		mTts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+		
 	}
-	
-	
+
 	/**
-	 *  Adds a highlight and removes all others
+	 * Adds a highlight and removes all others
+	 * 
 	 * @param marginTop
 	 * @param marginLeft
 	 * @param alpha
 	 * @param width
 	 * @param height
-	 * @param color 
+	 * @param color
 	 */
-	public static void hightlight(final int marginTop, final  int marginLeft,
-			 final float alpha,  final int width, final int height, final int color) {
+	public static void hightlight(final int marginTop, final int marginLeft,
+			final float alpha, final int width, final int height,
+			final int color) {
 		hightligherHandler.post(new Runnable() {
 			public void run() {
 
-				if (overlay != null){
+				if (overlay != null) {
 					windowManager.removeView(overlay);
 					overlay.removeAllViews();
-					overlay=null;
+					overlay = null;
 				}
 
-				
-					overlay = new RelativeLayout(hs);
+				overlay = new RelativeLayout(hs);
 
-					ImageView tv1 = new ImageView(hs);
-					tv1.setBackgroundColor(color);
+				ImageView tv1 = new ImageView(hs);
+				tv1.setBackgroundColor(color);
 
-					tv1.setAlpha(alpha);
+				tv1.setAlpha(alpha);
 
-					RelativeLayout.LayoutParams parms = new RelativeLayout.LayoutParams(
-							width, height);
-					parms.leftMargin = marginLeft;
-					parms.topMargin = marginTop;
-					tv1.setLayoutParams(parms);
+				RelativeLayout.LayoutParams parms = new RelativeLayout.LayoutParams(
+						width, height);
+				parms.leftMargin = marginLeft;
+				parms.topMargin = marginTop;
+				tv1.setLayoutParams(parms);
 
-					overlay.addView(tv1, parms);
-					windowManager.addView(overlay, params);
-					
-					
-				
+				overlay.addView(tv1, parms);
+				windowManager.addView(overlay, params);
 
 			}
 		});
 	}
-	
+
 	/**
-	 * Adds a highlight 
+	 * Adds a highlight
+	 * 
 	 * @param marginTop
 	 * @param marginLeft
 	 * @param alpha
 	 * @param width
 	 * @param height
 	 */
-	public static void addHightlight( int marginTop,  int marginLeft,
-			 float alpha,  int width,  int height) {
-	
+	public static void addHightlight(int marginTop, int marginLeft,
+			float alpha, int width, int height) {
+
 	}
-	
+
 	/**
 	 * Clear highlights
 	 */
-	public static void clearHightlights( ) {
-	
-		if (overlay != null){
+	public static void clearHightlights() {
+
+		if (overlay != null) {
 			windowManager.removeView(overlay);
 			overlay.removeAllViews();
-			overlay=null;
+			overlay = null;
 		}
 	}
 
 	public static void stop() {
 		clearHightlights();
 		mTts.shutdown();
-		
+
 	}
-	
-	
-	
-	
-	
+
 }

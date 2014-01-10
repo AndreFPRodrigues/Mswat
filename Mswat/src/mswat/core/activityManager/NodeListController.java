@@ -25,13 +25,12 @@ public class NodeListController {
 	// Content list
 	ArrayList<Node> listCurrentNodes = new ArrayList<Node>();
 
-	//represents the ability to scroll
-	private Node scrollNode = null;
+	
 
-	//Auto feedback variables
+	// Auto feedback variables
 	private boolean audioFeedback;
 	private boolean visualFeedback;
-	
+
 	// navigation variables
 	final int FOWARD = 0;
 	final int BACKWARD = 1;
@@ -83,8 +82,6 @@ public class NodeListController {
 	 * Select current focused node
 	 */
 	public void selectFocus() {
-		
-
 		if (currentNavIndex != -1 && currentNavIndex < listCurrentNodes.size()) {
 			Node n = listCurrentNodes.get(currentNavIndex);
 			currentNavIndex = -1;
@@ -127,7 +124,7 @@ public class NodeListController {
 				}
 			}
 		}
-		if(visualFeedback)
+		if (visualFeedback)
 			FeedBack.clearHightlights();
 
 	}
@@ -136,7 +133,7 @@ public class NodeListController {
 	 * Navigate to next node
 	 */
 	public void navNext() {
-		
+
 		if (listCurrentNodes.size() > 0) {
 			currentNavIndex = (currentNavIndex + 1) % listCurrentNodes.size();
 
@@ -160,9 +157,9 @@ public class NodeListController {
 					}
 
 				}
-				if(visualFeedback)
+				if (visualFeedback)
 					FeedBack.clearHightlights();
-				
+
 				currentNavIndex = -1;
 			} else {
 
@@ -176,7 +173,8 @@ public class NodeListController {
 				if (visualFeedback) {
 					FeedBack.hightlight(n.getBounds().top - 40,
 							n.getBounds().left, (float) 0.6, n.getBounds()
-									.width(), n.getBounds().height(), Color.BLUE);
+									.width(), n.getBounds().height(),
+							Color.BLUE);
 				}
 			}
 
@@ -188,7 +186,6 @@ public class NodeListController {
 	 * Navigate to previous node
 	 */
 	public void navPrev() {
-	
 
 		if (listCurrentNodes.size() > 0) {
 			if (currentNavIndex < 1)
@@ -229,7 +226,8 @@ public class NodeListController {
 				if (visualFeedback) {
 					FeedBack.hightlight(n.getBounds().top - 40,
 							n.getBounds().left, (float) 0.6, n.getBounds()
-									.width(), n.getBounds().height(), Color.BLUE);
+									.width(), n.getBounds().height(),
+							Color.BLUE);
 				}
 			}
 
@@ -271,41 +269,49 @@ public class NodeListController {
 	public Drawable getIcon(String s) {
 		return null;
 	}
-	
+
 	/**
 	 * Update node list with the latest view content
+	 * 
 	 * @param list
 	 */
-	void updateList(ArrayList <Node>list){
+	void updateList(ArrayList<Node> list) {
 		listCurrentNodes.clear();
-		listCurrentNodes=list;
-		currentNavIndex=-1;
-		
+		listCurrentNodes = list;
+		currentNavIndex = -1;
+
 	}
-	
+
 	/**
 	 * Sets automatic highlight on nav
+	 * 
 	 * @param state
 	 */
 	public void setAutoHighlight(boolean state) {
-		visualFeedback=state;
-		
+		visualFeedback = state;
+
 	}
-	
+
 	/**
 	 * Sets automatic TTS on nav
+	 * 
 	 * @param state
 	 */
 	public void setAutoTTS(boolean state) {
-		audioFeedback=state;
-		
+		audioFeedback = state;
+
 	}
 
 	/**
 	 * Set current focus to index
+	 * 
 	 * @param index
 	 */
 	public void focusIndex(int index) {
-		currentNavIndex=index;
+		if (index == -55){
+			currentNavIndex = listCurrentNodes.size() - 1;
+		}
+		else
+			currentNavIndex = index;
 	}
 }

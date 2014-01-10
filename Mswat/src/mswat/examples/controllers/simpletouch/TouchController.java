@@ -1,5 +1,6 @@
-package mswat.controllers;
+package mswat.examples.controllers.simpletouch;
 
+import mswat.controllers.ControlInterface;
 import mswat.core.CoreController;
 import mswat.interfaces.IOReceiver;
 import mswat.touch.TouchPatternRecognizer;

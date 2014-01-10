@@ -10,7 +10,7 @@ public interface  ContentReceiver  {
 	 * Registers receiver, returns the receiver identifier (index)
 	 * @return
 	 */
-	public boolean registerContentReceiver();
+	public int registerContentReceiver();
 		
 	
 	/**
