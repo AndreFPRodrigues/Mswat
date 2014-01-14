@@ -12,9 +12,8 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
-    	<uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
-   
-
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" >
+    </uses-permission>
 
     <application
         android:icon="@drawable/ic_launcher"
@@ -51,11 +50,12 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name="mswat.examples.controllers.autonav.AutoNavTouch"
+            android:name="mswat.examples.controllers.autonav.AutoNav"
             android:enabled="true" >
             <intent-filter android:priority="99999" >
                 <action android:name="monitor" />
                 <action android:name="contentUpdate" />
+                <action android:name="mswat_initKeyboard" />
                 <action android:name="mswat_init" />
                 <action android:name="mswat_stop" />
                 <action android:name="android.intent.action.PHONE_STATE" />
@@ -78,8 +78,7 @@
                 <action android:name="mswat_stop" />
             </intent-filter>
         </receiver>
-        
-          <receiver
+        <receiver
             android:name="mswat.examples.notificationReceiver.TestNotification"
             android:enabled="true" >
             <intent-filter>

@@ -29,7 +29,35 @@ public final class R {
         public static final int reddot=0x7f020001;
     }
     public static final class id {
-        public static final int action_settings=0x7f0a0003;
+        public static final int RelativeLayout01=0x7f0a0003;
+        public static final int TableLayout01=0x7f0a0004;
+        public static final int TextViewA=0x7f0a0005;
+        public static final int TextViewB=0x7f0a0006;
+        public static final int TextViewC=0x7f0a0007;
+        public static final int TextViewD=0x7f0a0008;
+        public static final int TextViewE=0x7f0a0009;
+        public static final int TextViewF=0x7f0a000a;
+        public static final int TextViewG=0x7f0a000b;
+        public static final int TextViewH=0x7f0a000c;
+        public static final int TextViewI=0x7f0a000d;
+        public static final int TextViewJ=0x7f0a000e;
+        public static final int TextViewK=0x7f0a000f;
+        public static final int TextViewL=0x7f0a0010;
+        public static final int TextViewM=0x7f0a0011;
+        public static final int TextViewN=0x7f0a0012;
+        public static final int TextViewO=0x7f0a0013;
+        public static final int TextViewP=0x7f0a0014;
+        public static final int TextViewQ=0x7f0a0015;
+        public static final int TextViewR=0x7f0a0016;
+        public static final int TextViewS=0x7f0a0017;
+        public static final int TextViewT=0x7f0a0018;
+        public static final int TextViewU=0x7f0a0019;
+        public static final int TextViewV=0x7f0a001a;
+        public static final int TextViewW=0x7f0a001b;
+        public static final int TextViewX=0x7f0a001c;
+        public static final int TextViewY=0x7f0a001d;
+        public static final int TextViewZ=0x7f0a001e;
+        public static final int action_settings=0x7f0a001f;
         public static final int imageButton1=0x7f0a0001;
         public static final int listview=0x7f0a0002;
         public static final int textView1=0x7f0a0000;
@@ -37,6 +65,7 @@ public final class R {
     public static final class layout {
         public static final int activity_calibration=0x7f030000;
         public static final int activity_listviewexampleactivity=0x7f030001;
+        public static final int autonavkeyboard=0x7f030002;
     }
     public static final class menu {
         public static final int calibration=0x7f090000;

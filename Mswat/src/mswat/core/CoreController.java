@@ -68,6 +68,7 @@ public class CoreController {
 	public static double M_WIDTH;
 	public static double M_HEIGHT;
 
+	
 	// Screen resolution
 	public static double S_WIDTH = 1024;
 	public static double S_HEIGHT = 960;
@@ -344,11 +345,9 @@ public class CoreController {
 	public static void updateContentReceivers(ArrayList<Node> content) {
 		if (keyboardState) {
 
-			if (hs.getResources().getConfiguration().keyboardHidden == hs
-					.getResources().getConfiguration().KEYBOARDHIDDEN_YES) {
-				keyboardState = false;
-				Log.d(LT, "keyboard hidden");
-			}
+			keyboardState = false;
+			Log.d(LT, "keyboard hidden");
+
 		}
 		int size = contentReceivers.size();
 		for (int i = 0; i < size; i++) {
@@ -629,6 +628,7 @@ public class CoreController {
 	 */
 	public static void updateNotificationReceivers(String note) {
 		int size = notificationReceivers.size();
+		
 		for (int i = 0; i < size; i++) {
 			notificationReceivers.get(i).onNotification(note);
 		}
@@ -638,10 +638,10 @@ public class CoreController {
 	public static void startKeyboard() {
 		if (!keyboardState) {
 			Log.d(LT, "keyboard visible");
-			char c= ' ';
-			int a = c;
-			Log.d(LT, "valor" + a);
 			keyboardState = true;
+			Intent intent = new Intent();
+			intent.setAction("mswat_initKeyboard");
+			hs.sendBroadcast(intent);
 		}
 	}
 
@@ -657,7 +657,7 @@ public class CoreController {
 		intent.setAction("mswat_writeString");
 		intent.putExtra("codes", array);
 		hs.sendBroadcast(intent);
-		
+
 	}
 
 }

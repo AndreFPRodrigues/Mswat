@@ -43,7 +43,10 @@ When using the framework always go through the CoreController to access the desi
 Receives IO updates  
 
 #####ContentReceiver  
-Receives content update  
+Receives content update
+
+#####Notification  
+Receives notifications updates  
 
 ###Logger
 One possible implementation of a system wide logger    
@@ -61,21 +64,27 @@ identifyOnRelease() - Touch/Slide/LongPress
 ###Controllers Package
 #####ControlInterface
 Parent of all interfaces schemes 
+
+###Examples
 #####TouchController
 Example of a interfacing scheme - slide to navigate, touch to select current selected target,
 longpress to stop service
-#####AutoNavTouch
-Example of a interfacing scheme - auto scanning, touch to select current select target
 
-###TouchAdapter
+#####AutoNavTouch
+Example of a interfacing scheme - auto scanning, touch to select current select target. Keyboard example.
+
+#####TouchAdapter
 Example of blocking and monitoring the touch driver. 
 Creates a virtual touch driver to forward the input events to.
+
+#####Notification
+Example of a notification receiver
 
 
 
 ##Getting started
 First thing is to understand how to use the framework.
-Two of the core functionalities are accessed through implementing the Interfaces mentioned above.
+The core functionalities are accessed through implementing the Interfaces mentioned above.
 
 The IOReceiver allows you to get the raw input updates.  
 The Content receiver allows you to get updates about the screen contents every time the screen changes
@@ -87,10 +96,7 @@ the interface and register. Registration is done by calling
     CoreController.registerIOReceiver(this);
 After that the onUpdateIO will receive the raw input data.
 
-####AutoNav
-Is an example of an IOReceiver and a ContentReceiver. The ContentReceiver works like the IOReceiver
-the difference is onUpdateContent it receives a list of the current screen "describable" nodes
-(nodes that have some kind of description or are clickable)
+
 
 ####Initialising new components
 To start a new component when the framework is initialised all you have to do is go to the 
@@ -137,6 +143,11 @@ TouchAdapter is an example on how to block the touch device, create a virtual to
 and forward the events from the blocked touch device to the virtual one.
 
 
+####AutoNav
+Using the framework we are building an assistive technology that is able to do a 
+column-row navigation system-wide. It provides with TTS notifications and the ability to 
+use the keyboard using only one switch. The goal of this example of use is to be able to 
+provide key features (make/receive calls, send/receive sms, clock)to a individual with multiple impairments.
 
 
 

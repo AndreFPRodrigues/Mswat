@@ -52,7 +52,7 @@ public class FeedBack implements OnInitListener {
 	public void onInit(int status) {
 		if (status == TextToSpeech.SUCCESS) {
 
-			int result = mTts.setLanguage(Locale.getDefault());
+			int result = mTts.setLanguage(Locale.ENGLISH);
 
 			if (result == TextToSpeech.LANG_MISSING_DATA
 					|| result == TextToSpeech.LANG_NOT_SUPPORTED) {
@@ -121,9 +121,9 @@ public class FeedBack implements OnInitListener {
 
 				ImageView tv1 = new ImageView(hs);
 				tv1.setBackgroundColor(color);
-
+				
 				tv1.setAlpha(alpha);
-
+				
 				RelativeLayout.LayoutParams parms = new RelativeLayout.LayoutParams(
 						width, height);
 				parms.leftMargin = marginLeft;

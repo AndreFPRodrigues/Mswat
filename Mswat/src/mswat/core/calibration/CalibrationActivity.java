@@ -20,7 +20,7 @@ public class CalibrationActivity extends Activity {
 
 	ImageButton imageButton;
 	private final static String LT = "Calibration";
-
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -28,7 +28,6 @@ public class CalibrationActivity extends Activity {
 		// addListenerOnButton();
 
 		setContentView(R.layout.activity_listviewexampleactivity);
-
 		final ListView listview = (ListView) findViewById(R.id.listview);
 		String[] values = CoreController.getDevices();
 
