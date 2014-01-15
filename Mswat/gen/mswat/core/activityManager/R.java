@@ -9,6 +9,8 @@ package mswat.core.activityManager;
 
 public final class R {
     public static final class array {
+        public static final int keyboardMode=0x7f050002;
+        public static final int keyboardValues=0x7f050003;
         public static final int mode=0x7f050000;
         public static final int modeValues=0x7f050001;
     }
@@ -81,9 +83,11 @@ public final class R {
         public static final int default_controller=0x7f070002;
         public static final int hello_world=0x7f070010;
         public static final int intro_calibration=0x7f07000f;
+        public static final int keyboard=0x7f070011;
         public static final int log=0x7f070005;
         public static final int log1=0x7f070004;
         public static final int set_controller=0x7f070003;
+        public static final int set_keyboard=0x7f070012;
         public static final int set_mswat=0x7f07000c;
         public static final int title_activity_calibration=0x7f07000d;
         public static final int visualFeed=0x7f07000b;

@@ -1,6 +1,7 @@
 package mswat.core;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import mswat.core.activityManager.HierarchicalService;
 import mswat.core.activityManager.Node;
@@ -11,6 +12,7 @@ import mswat.core.logger.Logger;
 import mswat.interfaces.ContentReceiver;
 import mswat.interfaces.IOReceiver;
 import mswat.interfaces.NotificationReceiver;
+import mswat.keyboard.SwatKeyboard;
 import android.app.KeyguardManager;
 import android.app.KeyguardManager.KeyguardLock;
 import android.content.Context;
@@ -38,14 +40,17 @@ public class CoreController {
 	private static Monitor monitor;
 
 	private static String controller;
+	private static String keyboard;
 	private static boolean logging;
 
 	// List of receivers
-	private static ArrayList<IOReceiver> ioReceivers;
+	private static Hashtable<Integer, IOReceiver> ioReceivers;
 	private static ArrayList<ContentReceiver> contentReceivers;
 	private static ArrayList<NotificationReceiver> notificationReceivers;
-
 	private static ArrayList<Logger> loggers;
+
+	// active keyboard
+	private static SwatKeyboard activeKeyboard;
 
 	// Context
 	private static HierarchicalService hs;
@@ -68,13 +73,9 @@ public class CoreController {
 	public static double M_WIDTH;
 	public static double M_HEIGHT;
 
-	
 	// Screen resolution
 	public static double S_WIDTH = 1024;
 	public static double S_HEIGHT = 960;
-
-	// keyboard active
-	public static boolean keyboardState = false;
 
 	/**
 	 * Initialise CoreController
@@ -84,21 +85,23 @@ public class CoreController {
 	 * @param hierarchicalService
 	 * @param controller
 	 * @param waitForCalibration
+	 * @param keyboard
 	 */
 	public CoreController(NodeListController nController, Monitor monitor,
 			HierarchicalService hierarchicalService, String controller,
-			boolean waitForCalibration, boolean logging) {
+			boolean waitForCalibration, boolean logging, String keyboard) {
 		CoreController.monitor = monitor;
 		CoreController.nController = nController;
 		hs = hierarchicalService;
 
 		// initialise arrayListReceivers
-		ioReceivers = new ArrayList<IOReceiver>();
+		ioReceivers = new Hashtable<Integer, IOReceiver>();
 		contentReceivers = new ArrayList<ContentReceiver>();
 		notificationReceivers = new ArrayList<NotificationReceiver>();
 
 		this.controller = controller;
 		this.logging = logging;
+		this.keyboard = keyboard;
 
 		Log.d(LT, "log:" + logging);
 
@@ -106,7 +109,7 @@ public class CoreController {
 		if (!waitForCalibration) {
 			Log.d(LT, "STARTING SERVICE");
 
-			startService(controller, logging);
+			startService(controller, logging, keyboard);
 		} else
 			Log.d(LT, "CALIBRATION");
 
@@ -146,8 +149,15 @@ public class CoreController {
 	 */
 	public static int registerIOReceiver(IOReceiver ioReceiver) {
 		int size = ioReceivers.size();
-		ioReceivers.add(ioReceiver);
+		ioReceivers.put(size, ioReceiver);
 		return size;
+	}
+
+	/**
+	 * Unregister IOReceiver
+	 */
+	public static void unregisterIOReceiver(int key) {
+		ioReceivers.remove(key);
 	}
 
 	/**
@@ -343,12 +353,7 @@ public class CoreController {
 	 * @param content
 	 */
 	public static void updateContentReceivers(ArrayList<Node> content) {
-		if (keyboardState) {
 
-			keyboardState = false;
-			Log.d(LT, "keyboard hidden");
-
-		}
 		int size = contentReceivers.size();
 		for (int i = 0; i < size; i++) {
 			contentReceivers.get(i).onUpdateContent(content);
@@ -570,12 +575,14 @@ public class CoreController {
 		hs.stopService();
 	}
 
-	private static void startService(String controller, boolean logging) {
+	private static void startService(String controller, boolean logging,
+			String keyboard) {
 		// Broadcast event
 		Intent intent = new Intent();
 		intent.setAction("mswat_init");
 		intent.putExtra("controller", controller);
 		intent.putExtra("logging", logging);
+		intent.putExtra("keyboard", keyboard);
 		hs.sendBroadcast(intent);
 	}
 
@@ -585,7 +592,7 @@ public class CoreController {
 
 	public static void stopCalibration() {
 		monitor.stopCalibration();
-		startService(controller, logging);
+		startService(controller, logging, keyboard);
 	}
 
 	public static void setScreenSize(int width, int height) {
@@ -628,7 +635,7 @@ public class CoreController {
 	 */
 	public static void updateNotificationReceivers(String note) {
 		int size = notificationReceivers.size();
-		
+
 		for (int i = 0; i < size; i++) {
 			notificationReceivers.get(i).onNotification(note);
 		}
@@ -636,13 +643,20 @@ public class CoreController {
 	}
 
 	public static void startKeyboard() {
-		if (!keyboardState) {
-			Log.d(LT, "keyboard visible");
-			keyboardState = true;
-			Intent intent = new Intent();
-			intent.setAction("mswat_initKeyboard");
-			hs.sendBroadcast(intent);
-		}
+		if (activeKeyboard != null)
+			activeKeyboard.start();
+		// Broadcast event
+		Intent intent = new Intent();
+		intent.setAction("mswat_keyboard");
+		intent.putExtra("status", true);
+		hs.sendBroadcast(intent);
+	}
+	public static void stopKeyboard(){
+		// Broadcast event
+				Intent intent = new Intent();
+				intent.setAction("mswat_keyboard");
+				intent.putExtra("status", false);
+				hs.sendBroadcast(intent);
 	}
 
 	public static void callKeyboardWriteChar(int code) {
@@ -658,6 +672,10 @@ public class CoreController {
 		intent.putExtra("codes", array);
 		hs.sendBroadcast(intent);
 
+	}
+
+	public static void registerActivateKeyboard(SwatKeyboard keyboard) {
+		activeKeyboard = keyboard;
 	}
 
 }

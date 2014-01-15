@@ -12,6 +12,7 @@ public class ServicePreferences extends PreferenceActivity implements
 
 	public final String LOG = "log";
 	public final String CONTROLLER = "controller";
+	public final String KEYBOARD = "keyboard";
 	public final String AUDIO = "audio";
 	public final String VISUAL = "visual";
 	public final String CALIBRATION = "calibration";

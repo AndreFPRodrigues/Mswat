@@ -346,6 +346,9 @@ public class HierarchicalService extends AccessibilityService {
 		}
 
 		String controller = sharedPref.getString(servPref.CONTROLLER, "null");
+		
+		String keyboard = sharedPref.getString(servPref.KEYBOARD, "null");
+
 
 		// initialise feedback
 		fb = new FeedBack(this, windowManager, params);
@@ -357,7 +360,7 @@ public class HierarchicalService extends AccessibilityService {
 
 		// initialise coreController
 		CoreController cc = new CoreController(nlc, monitor, this, controller,
-				calibration, logging);
+				calibration, logging , keyboard);
 
 		// starts calibration activity
 		if (calibration) {

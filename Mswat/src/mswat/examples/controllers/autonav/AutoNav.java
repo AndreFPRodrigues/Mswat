@@ -102,11 +102,10 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 			// Handling softkeyboard
 		} else {
-			if (intent.getAction().equals("mswat_initKeyboard")) {
-				keyboardState = true;
+			if (intent.getAction().equals("mswat_keyboard")) {
+				keyboardState = intent.getBooleanExtra("status", false);
 				Log.d(LT, "KEYBOARD ENABLE ");
 
-				 ank = new AutoNavKeyboard(context);
 			}
 
 		}
@@ -152,18 +151,17 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 	@Override
 	public void onUpdateIO(int device, int type, int code, int value,
 			int timestamp) {
+		
 		// if keyboard is enabled ignores IO events
-	
+		if (keyboardState) {
+			return;
+		}
 			// Debugg purposes stop the service
 			int touchType;
 			if ((touchType = tpr
 					.identifyOnRelease(type, code, value, timestamp)) != -1) {
 
-				//handle touch while in keyboard mode
-				if (keyboardState) {
-					ank.touch(touchType);
-					return;
-				}
+				
 				Log.d(LT, "IO update");
 
 				

@@ -18,6 +18,14 @@
             android:key="controller"
             android:summary="@string/set_controller"
             android:title="@string/controller" />
+        
+        <ListPreference
+            android:defaultValue="@string/default_controller"
+            android:entries="@array/keyboardMode"
+            android:entryValues="@array/keyboardValues"
+            android:key="keyboard"
+            android:summary="@string/set_keyboard"
+            android:title="@string/keyboard" />
 
         <CheckBoxPreference
             android:defaultValue="false"

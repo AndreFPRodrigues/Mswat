@@ -18,5 +18,7 @@
     <string name="action_settings">Settings</string>
     <string name="intro_calibration">In order to calibrate the service please press the red dot</string>
     <string name="hello_world">Hello world!</string>
+    <string name="keyboard">Keyboard</string>
+    <string name="set_keyboard">Select the active keyboard</string>
 
 </resources>

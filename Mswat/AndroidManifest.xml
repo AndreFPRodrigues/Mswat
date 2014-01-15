@@ -55,7 +55,7 @@
             <intent-filter android:priority="99999" >
                 <action android:name="monitor" />
                 <action android:name="contentUpdate" />
-                <action android:name="mswat_initKeyboard" />
+                <action android:name="mswat_keyboard" />
                 <action android:name="mswat_init" />
                 <action android:name="mswat_stop" />
                 <action android:name="android.intent.action.PHONE_STATE" />
@@ -83,6 +83,16 @@
             android:enabled="true" >
             <intent-filter>
                 <action android:name="mswat_init" />
+                <action android:name="mswat_stop" />
+            </intent-filter>
+        </receiver>
+        
+         <receiver
+            android:name="mswat.examples.controllers.autonav.AutoNavKeyboard"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="mswat_init" />
+                <action android:name="monitor" />
                 <action android:name="mswat_stop" />
             </intent-filter>
         </receiver>
