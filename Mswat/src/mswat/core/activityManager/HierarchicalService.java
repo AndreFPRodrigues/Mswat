@@ -54,7 +54,7 @@ public class HierarchicalService extends AccessibilityService {
 	private ArrayList<AppIcon> appIcons = new ArrayList<AppIcon>();
 
 	// flag to register keystrokes
-	private boolean logging = false;
+	private boolean logAtTouch = false;
 
 	private SharedPreferences sharedPref;
 	private ServicePreferences servPref;
@@ -70,14 +70,16 @@ public class HierarchicalService extends AccessibilityService {
 	 */
 	@Override
 	public void onAccessibilityEvent(AccessibilityEvent event) {
-		//Log.d(LT, event.toString());
+		// Log.d(LT, event.toString());
 
 		if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)
 			CoreController.updateNotificationReceivers("" + event.getText());
 		else {
 
-			if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_CLICKED ) {
-				if (event.getClassName().toString().contains("EditText")|| event.getClassName().toString().contains("MultiAutoCompleteTextView")) {					
+			if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+				if (event.getClassName().toString().contains("EditText")
+						|| event.getClassName().toString()
+								.contains("MultiAutoCompleteTextView")) {
 					CoreController.startKeyboard();
 				}
 			} else {
@@ -87,8 +89,6 @@ public class HierarchicalService extends AccessibilityService {
 					return;
 				}
 
-				
-			
 				source = getRootParent(source);
 				if (source == null) {
 					return;
@@ -96,7 +96,7 @@ public class HierarchicalService extends AccessibilityService {
 				currentParent = source;
 
 				// register keystrokes
-				if (logging
+				if (logAtTouch
 						&& AccessibilityEvent.eventTypeToString(
 								event.getEventType()).contains("TEXT")) {
 
@@ -147,7 +147,7 @@ public class HierarchicalService extends AccessibilityService {
 
 					// Send content update to the receivers
 					CoreController.updateContentReceivers(nodeList);
-					 printViewItens(checkList);
+					printViewItens((ArrayList<Node>) checkList.clone());
 				}
 
 			}
@@ -178,12 +178,12 @@ public class HierarchicalService extends AccessibilityService {
 	private synchronized void listUpdate(AccessibilityNodeInfo source) {
 		AccessibilityNodeInfo child;
 		Rect outBounds = new Rect();
-		
+
 		Node n;
 		boolean addScroll = false;
 		for (int i = 0; i < source.getChildCount(); i++) {
 			child = source.getChild(i);
-	
+
 			if (child != null) {
 
 				if (child.isScrollable() && !addScroll) {
@@ -250,10 +250,10 @@ public class HierarchicalService extends AccessibilityService {
 		int size = listCurrentNodes.size();
 		Log.d(LT,
 				"---------------------List State------------------------------");
-
-		for (int i = 0; i < size; i++) {
-			Log.d(LT, listCurrentNodes.get(i).toString());
-		}
+		if (size > 0)
+			for (int i = 0; i < size; i++) {
+				Log.d(LT, listCurrentNodes.get(i).toString());
+			}
 
 	}
 
@@ -288,7 +288,7 @@ public class HierarchicalService extends AccessibilityService {
 		// getServiceInfo().flags =
 		// AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE;
 		// getServiceInfo().flags =
-		//AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
+		// AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
 
 		Log.d(LT, "CONNECTED");
 		// Creating the install app icons list
@@ -321,7 +321,14 @@ public class HierarchicalService extends AccessibilityService {
 		// shared preferences
 		sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 		servPref = new ServicePreferences();
-		logging = sharedPref.getBoolean(servPref.LOG, false);
+		logAtTouch = sharedPref.getBoolean(servPref.LOG_AT_TOUCH, false);
+
+		// Log touch events
+		boolean logIO = sharedPref.getBoolean(servPref.LOG_IO, false);
+
+		// Log navigation using the framework control interface
+		boolean logNav = sharedPref.getBoolean(servPref.LOG_NAV, false);
+
 		boolean audioFeedBack = sharedPref.getBoolean(servPref.AUDIO, false);
 		boolean visualFeedBack = sharedPref.getBoolean(servPref.VISUAL, false);
 
@@ -331,13 +338,15 @@ public class HierarchicalService extends AccessibilityService {
 		boolean broadcastIO = sharedPref.getBoolean(servPref.BROADCAST_IO,
 				false);
 		broadcastContent = sharedPref.getBoolean(servPref.BROADCAST_CONTENT,
-				false);
+				false); 
 
 		int touchIndex = sharedPref.getInt(servPref.TOUCH_INDEX, -1);
 
 		if ((sharedPref.getInt("s_width", (int) CoreController.S_WIDTH)) != 0) {
 			CoreController.S_WIDTH = sharedPref.getInt("s_width",
 					(int) CoreController.S_WIDTH);
+			 Log.d(LT, "width index stored" + CoreController.S_WIDTH);
+
 			CoreController.S_HEIGHT = sharedPref.getInt("s_height",
 					(int) CoreController.S_HEIGHT);
 		} else {
@@ -346,9 +355,8 @@ public class HierarchicalService extends AccessibilityService {
 		}
 
 		String controller = sharedPref.getString(servPref.CONTROLLER, "null");
-		
-		String keyboard = sharedPref.getString(servPref.KEYBOARD, "null");
 
+		String keyboard = sharedPref.getString(servPref.KEYBOARD, "null");
 
 		// initialise feedback
 		fb = new FeedBack(this, windowManager, params);
@@ -360,7 +368,7 @@ public class HierarchicalService extends AccessibilityService {
 
 		// initialise coreController
 		CoreController cc = new CoreController(nlc, monitor, this, controller,
-				calibration, logging , keyboard);
+				calibration, logIO, logNav, logAtTouch, keyboard);
 
 		// starts calibration activity
 		if (calibration) {
@@ -425,8 +433,13 @@ public class HierarchicalService extends AccessibilityService {
 
 	// go to home screen
 	public void home() {
-		performGlobalAction(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
+		performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
 
+	}
+
+	// go to home screen
+	public boolean back() {
+		return performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
 	}
 
 	/**
@@ -436,8 +449,8 @@ public class HierarchicalService extends AccessibilityService {
 	 * @param height
 	 */
 	public void storeScreenSize(int width, int height) {
-		sharedPref.edit().putInt("s_width", width);
-		sharedPref.edit().putInt("s_height", height);
+		sharedPref.edit().putInt("s_width", width).commit();
+		sharedPref.edit().putInt("s_height", height).commit();
 
 	}
 
@@ -447,8 +460,8 @@ public class HierarchicalService extends AccessibilityService {
 	 * @param index
 	 */
 	public void storeTouchIndex(int index) {
-		sharedPref.edit().putInt(servPref.TOUCH_INDEX, index);
-	}
+		sharedPref.edit().putInt(servPref.TOUCH_INDEX, index).commit();
+	} 
 
 	public void lockedScreen(boolean state) {
 		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);

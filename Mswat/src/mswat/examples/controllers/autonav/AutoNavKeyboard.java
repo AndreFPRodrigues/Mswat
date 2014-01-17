@@ -104,6 +104,9 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 	}
 
+	/**
+	 * Show keyboard layout
+	 */
 	@Override
 	public void show(final Context c) {
 		Handler hightligherHandler = new Handler();
@@ -120,6 +123,9 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 	}
 
+	/**
+	 * Close/hide keyboard
+	 */
 	@Override
 	public void hide() {
 		windowManager.removeView(overlay);
@@ -130,7 +136,10 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 		navigate = false;
 
 	}
-
+	
+	/**
+	 * Starts up the keyboard
+	 */
 	@Override
 	public void start() {
 		// prepare
@@ -151,11 +160,14 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 		keyIndex = registerIOReceiver();
 		
 		
-
+		//start autonavigation of the keyboard
 		autoNav();
 
 	}
 
+	/**
+	 * Receive the init signal
+	 */
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		// Triggered when the service starts
@@ -177,6 +189,9 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 	}
 
+	/**
+	 * On touch
+	 */
 	@Override
 	public void onUpdateIO(int device, int type, int code, int value,
 			int timestamp) {
@@ -185,6 +200,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 			// node
 			if (navMode == NAV_TREE_LINE) {
 				navMode = NAV_TREE_ROW;
+				resetColumnSearch();
 			} else {
 				navMode = NAV_TREE_LINE;
 

@@ -128,7 +128,13 @@ public abstract class SwatKeyboard extends  BroadcastReceiver {
 	
 	public void resetSearch(){
 		index[1]=-1;
-		
+		navUp();
+
+	}
+	
+	public void resetColumnSearch(){
+		index[1]=-1;
+
 	}
 	
 	/**

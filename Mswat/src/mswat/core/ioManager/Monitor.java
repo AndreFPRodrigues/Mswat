@@ -315,6 +315,7 @@ public class Monitor {
 	 * @return index of the touch device if successful -1 if not
 	 */
 	public int monitorTouch() {
+
 		if (touchIndex != -1) {
 			monitorDevice(touchIndex, true);
 			return touchIndex;

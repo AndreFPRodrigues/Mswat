@@ -5,8 +5,10 @@
     <string name="controller">Controller</string>
     <string name="default_controller">none</string>
     <string name="set_controller">Select interface controller</string>
-    <string name="log1">Logger</string>
-    <string name="log">Activate logger</string>
+    <string name="log">Logger</string>
+    <string name="log1">Log IO</string>
+    <string name="log2">Log at Touch</string>
+    <string name="log3">Log navigation using the control interfaces</string>
     <string name="audioFeed1">Audio Feedback</string>
     <string name="audioFeed">Set Audio Feedback</string>
     <string name="calibration">Calibration</string>

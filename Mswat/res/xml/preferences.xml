@@ -7,9 +7,20 @@
         android:title="@string/set_mswat" >
         <CheckBoxPreference
             android:defaultValue="false"
-            android:key="log"
-            android:summary="@string/log"
-            android:title="@string/log1" />
+            android:key="log1"
+            android:summary="@string/log1"
+            android:title="@string/log" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:enabled="false"
+            android:key="log2"
+            android:summary="@string/log2"
+            android:title="@string/log" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="log3"
+            android:summary="@string/log3"
+            android:title="@string/log" />
 
         <ListPreference
             android:defaultValue="@string/default_controller"
@@ -18,7 +29,6 @@
             android:key="controller"
             android:summary="@string/set_controller"
             android:title="@string/controller" />
-        
         <ListPreference
             android:defaultValue="@string/default_controller"
             android:entries="@array/keyboardMode"
@@ -32,14 +42,12 @@
             android:key="audio"
             android:summary="@string/audioFeed"
             android:title="@string/audioFeed1" />
-        
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="calibration"
             android:summary="@string/calibration"
             android:title="@string/calibration1" />
-        
-         <CheckBoxPreference
+        <CheckBoxPreference
             android:defaultValue="false"
             android:key="visual"
             android:summary="@string/visualFeed"

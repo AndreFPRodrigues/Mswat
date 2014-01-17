@@ -24,7 +24,7 @@ import android.util.Log;
  * 
  */
 public class AutoNav extends ControlInterface implements IOReceiver,
-		ContentReceiver, NotificationReceiver  {
+		ContentReceiver, NotificationReceiver {
 
 	private final String LT = "AutoNav";
 	private int time = 3000;
@@ -35,7 +35,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 	private int navMode = NAV_TREE_LINE;
 
 	private boolean updateNavTree = false;
-	 static boolean handlingCall = false;
+	static boolean handlingCall = false;
 	private static boolean answeringCall = false;
 	private static boolean readingNote = false;
 
@@ -89,7 +89,6 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 				handlingCall = true;
 				keyboardState = false;
 
-
 			} else if (intent.getExtras().getString("state").equals("OFFHOOK")) {
 				answeringCall = true;
 				updateNavTree = true;
@@ -122,7 +121,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 	public int registerIOReceiver() {
 		return CoreController.registerIOReceiver(this);
 	}
-	
+
 	@Override
 	public int registerNotificationReceiver() {
 		return CoreController.registerNotificationReceiver(this);
@@ -130,11 +129,12 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 	@Override
 	public void onNotification(String notification) {
-		Log.d (LT, "Notificacao " + notification);
-		readingNote=true;
+		Log.d(LT, "Notificacao " + notification);
+		readingNote = true;
 		readingNote = CoreController.waitFortextToSpeech(notification);
-		
+
 	}
+
 	@Override
 	public void onUpdateContent(ArrayList<Node> content) {
 		if (!answeringCall || updateNavTree) {
@@ -151,79 +151,95 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 	@Override
 	public void onUpdateIO(int device, int type, int code, int value,
 			int timestamp) {
-		
+
 		// if keyboard is enabled ignores IO events
 		if (keyboardState) {
 			return;
 		}
-			// Debugg purposes stop the service
-			int touchType;
-			if ((touchType = tpr
-					.identifyOnRelease(type, code, value, timestamp)) != -1) {
+		// Debugg purposes stop the service
+		int touchType;
+		if ((touchType = tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
 
-				
-				Log.d(LT, "IO update");
+			Log.d(LT, "IO update");
 
-				
-				switch (touchType) {
-				case TouchPatternRecognizer.LONGPRESS:
-					// Stops service
-					CoreController.stopService();
-					 navigate = false;
-					break;
-				}
-				if (handlingCall && navTree.getCurrentNode() != null) {
-					if (navTree.getCurrentNode().getName().equals("atender")) {
-						navTree.pause = true;
-						answeringCall = true;
-						handlingCall = false;
-						CallManagement.answer(c);
-
-					}
-				} else
-
-				// unpause autonavigation
-				if (navTree.pause) {
-					Log.d(LT, "Unpause");
-
+			switch (touchType) {
+			case TouchPatternRecognizer.LONGPRESS:
+				// Stops service
+				CoreController.stopService();
+				navigate = false;
+				break;
+			}
+			if (handlingCall && navTree.getCurrentNode() != null) {
+				if (navTree.getCurrentNode().getName().equals("atender")) {
+					navTree.pause = true;
+					answeringCall = true;
 					handlingCall = false;
-					// answeringCall=false;
-					updateNavTree = true;
-					navTree.unpause = true;
+					CallManagement.answer(c);
+
+				}
+			} else
+
+			// unpause autonavigation
+			if (navTree.pause) {
+				Log.d(LT, "Unpause");
+
+				handlingCall = false;
+				// answeringCall=false;
+				updateNavTree = true;
+				navTree.unpause = true;
+			} else {
+				// either change navigation mode or select current focused
+				// node
+				if (navMode == NAV_TREE_LINE) {
+					navTree.nextNode();
+
+					if (navTree.lineSize() == 1 || (navTree.getCurrentNode()!=null && navTree.getCurrentNode().getName().equals("SCROLL"))) {
+					
+						if (navTree.getCurrentNode() != null
+								&& navTree.getCurrentNode().getName()
+										.equals("Terminar")) {
+							navTree.resetColumnIndex();
+							answeringCall = false;
+							updateNavTree = true;
+							CoreController.home();
+						} else if (navTree.getCurrentNode() != null
+								&& navTree.getCurrentNode().getName()
+										.equals("voltar")) {
+							//Log.d(LT, CoreController.back() + " boolean");
+
+							
+							  if(!CoreController.back()) CoreController.home();
+							 
+						} else {
+
+							focusIndex(navTree.getCurrentIndex());
+							selectCurrent();
+						}
+					} else{
+						navMode = NAV_TREE_ROW;
+					}
+					navTree.resetColumnIndex();
+
+
 				} else {
-					// either change navigation mode or select current focused
-					// node
-					if (navMode == NAV_TREE_LINE) {
-						
-						if(navTree.lineSize()==1){
-						if (navTree.getCurrentNode() != null
-								&& navTree.getCurrentNode().getName()
-										.equals("Terminar")) {
-							answeringCall = false;
-							updateNavTree = true;
-							CoreController.home();
-						}
-						focusIndex(navTree.getCurrentIndex());
-						selectCurrent();
-						}else 						navMode = NAV_TREE_ROW;
+					navMode = NAV_TREE_LINE;
 
-						
+					if (navTree.getCurrentNode() != null
+							&& navTree.getCurrentNode().getName()
+									.equals("Terminar")) {
+
+						answeringCall = false;
+						updateNavTree = true;
+						CoreController.home();
 					} else {
-						navMode = NAV_TREE_LINE;
 
-						if (navTree.getCurrentNode() != null
-								&& navTree.getCurrentNode().getName()
-										.equals("Terminar")) {
-							answeringCall = false;
-							updateNavTree = true;
-							CoreController.home();
-						}
 						focusIndex(navTree.getCurrentIndex());
 						selectCurrent();
 					}
 				}
 			}
-		
+		}
+
 	}
 
 	/**
@@ -235,9 +251,8 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 		navTree.navTreeUpdate(arrayList);
 		if (navTree.pause && !keyboardState)
 			navTree.unpause = true;
-
 	}
-
+	
 	/**
 	 * Auto navigation thread responsible to automatically cycle through
 	 * lines/nodes and highlight them
@@ -251,10 +266,12 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 				while (navigate) {
 					do {
-						//TODO maybe handler
+						// TODO maybe handler
 						SystemClock.sleep(time);
-						 //Log.d(LT, "Pause" + navTree.pause + "  Unpause:" +navTree.unpause + " keyboard:" + keyboardState);
-					} while ((navTree.pause && !navTree.unpause) || keyboardState || readingNote);
+						// Log.d(LT, "Pause" + navTree.pause + "  Unpause:"
+						// +navTree.unpause + " keyboard:" + keyboardState);
+					} while ((navTree.pause && !navTree.unpause)
+							|| keyboardState || readingNote);
 					if (navTree.available()) {
 
 						switch (navMode) {
@@ -279,11 +296,13 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 											(int) CoreController.S_WIDTH, n
 													.getBounds().height(),
 											Color.BLUE);
-									if(navTree.lineSize()==1){
+									Log.d(LT, "READ linha : " + n.getName());
+
+									if (navTree.lineSize() == 1) {
 										CoreController.textToSpeech(n.getName());
-									}else
-									CoreController.textToSpeech(n.getName()
-											+ " Linha");
+									} else
+										CoreController.textToSpeech(n.getName()
+												+ " Linha");
 								}
 							}
 							break;
@@ -296,6 +315,8 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 										(int) n.getBounds().width(), n
 												.getBounds().height(),
 										Color.CYAN);
+								Log.d(LT, "READ: " + n.getName());
+
 								boolean waitFor = CoreController
 										.waitFortextToSpeech(n.getName());
 
@@ -313,7 +334,4 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 	}
 
-
-
-	
 }

@@ -55,6 +55,9 @@ public class TouchPatternRecognizer {
 	private int idFingerUp;
 	private int biggestIdentifier=0;
 	
+	//used to prevent double tap
+	private int lastTouch=0;
+	private int doubleTapThreshold=1000;
 	/**
 	 * Identify type of touch (slide/touch/long press)
 	 * 
@@ -107,7 +110,14 @@ public class TouchPatternRecognizer {
 		}
 		if (code == SYN_MT_REPORT && lastEventCode == SYN_REPORT && touches.size() > 0) {
 			lastEventCode = -1;
-			return identifyTouch();
+			//prevents double tap
+			if((lastTouch-timestamp)<-doubleTapThreshold){
+				Log.d(LT, "last time:"+lastTouch+" timestamp:" +timestamp + " diference" + (lastTouch-timestamp));
+				lastTouch=timestamp;
+				return identifyTouch();
+			}
+			else
+				return -1;
 		}
 		lastEventCode = code;
 		return -1;

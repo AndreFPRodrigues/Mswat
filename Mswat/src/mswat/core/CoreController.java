@@ -41,7 +41,10 @@ public class CoreController {
 
 	private static String controller;
 	private static String keyboard;
-	private static boolean logging;
+	private static boolean logIo;
+	private static boolean logNav;
+	private static boolean logAtTouch;
+
 
 	// List of receivers
 	private static Hashtable<Integer, IOReceiver> ioReceivers;
@@ -60,6 +63,7 @@ public class CoreController {
 	public final static int NAV_PREV = 1;
 	public final static int SELECT_CURRENT = 2;
 	public final static int FOCUS_INDEX = 3;
+
 
 	// IO Variables
 	public final static int SET_BLOCK = 0;
@@ -85,11 +89,13 @@ public class CoreController {
 	 * @param hierarchicalService
 	 * @param controller
 	 * @param waitForCalibration
+	 * @param logNav 
+	 * @param logAtTouch 
 	 * @param keyboard
 	 */
 	public CoreController(NodeListController nController, Monitor monitor,
 			HierarchicalService hierarchicalService, String controller,
-			boolean waitForCalibration, boolean logging, String keyboard) {
+			boolean waitForCalibration, boolean logIO, boolean logNav, boolean logAtTouch, String keyboard) {
 		CoreController.monitor = monitor;
 		CoreController.nController = nController;
 		hs = hierarchicalService;
@@ -98,18 +104,20 @@ public class CoreController {
 		ioReceivers = new Hashtable<Integer, IOReceiver>();
 		contentReceivers = new ArrayList<ContentReceiver>();
 		notificationReceivers = new ArrayList<NotificationReceiver>();
+		loggers = new ArrayList<Logger>();
 
 		this.controller = controller;
-		this.logging = logging;
+		this.logIo = logIO;
 		this.keyboard = keyboard;
+		this.logNav=logNav;
+		this.logAtTouch=logAtTouch;
 
-		Log.d(LT, "log:" + logging);
+		Log.d(LT, "log:" + logIO);
 
 		// Broadcast the init signal
 		if (!waitForCalibration) {
-			Log.d(LT, "STARTING SERVICE");
 
-			startService(controller, logging, keyboard);
+			startService(controller, logIO, logAtTouch,  keyboard);
 		} else
 			Log.d(LT, "CALIBRATION");
 
@@ -281,6 +289,7 @@ public class CoreController {
 					monitor.createVirtualTouchDrive();
 					break;
 				case SETUP_TOUCH:
+					hs.storeTouchIndex(index);
 					monitor.setupTouch(index);
 					break;
 
@@ -384,6 +393,7 @@ public class CoreController {
 		b.start();
 	}
 
+	
 	/**
 	 * Forwards the message to the appropriate component
 	 * 
@@ -405,7 +415,10 @@ public class CoreController {
 					nController.navPrev();
 					break;
 				case SELECT_CURRENT:
-					nController.selectFocus();
+					String navTo = nController.selectFocus();
+					if(logNav && navTo.length()>0){
+						updateLoggers("Nav To: " + navTo);
+					}
 					break;
 				case FOCUS_INDEX:
 					nController.focusIndex(index);
@@ -575,13 +588,16 @@ public class CoreController {
 		hs.stopService();
 	}
 
-	private static void startService(String controller, boolean logging,
-			String keyboard) {
+	private static void startService(String controller, boolean logIO,
+			boolean logAtTouch, String keyboard) {
+		
+		Log.d(LT, "STARTING SERVICE");
 		// Broadcast event
 		Intent intent = new Intent();
 		intent.setAction("mswat_init");
 		intent.putExtra("controller", controller);
-		intent.putExtra("logging", logging);
+		intent.putExtra("logIO", logIO);
+		intent.putExtra("logAtTouch", logAtTouch);
 		intent.putExtra("keyboard", keyboard);
 		hs.sendBroadcast(intent);
 	}
@@ -592,7 +608,7 @@ public class CoreController {
 
 	public static void stopCalibration() {
 		monitor.stopCalibration();
-		startService(controller, logging, keyboard);
+		startService(controller, logIo, logAtTouch, keyboard);
 	}
 
 	public static void setScreenSize(int width, int height) {
@@ -606,6 +622,13 @@ public class CoreController {
 	 */
 	public static void home() {
 		hs.home();
+	}
+	
+	/**
+	 * Returns to home
+	 */
+	public static boolean back() {
+		return hs.back();
 	}
 
 	/**
@@ -635,7 +658,12 @@ public class CoreController {
 	 */
 	public static void updateNotificationReceivers(String note) {
 		int size = notificationReceivers.size();
-
+		if(note.equals("[]")){
+			return ;
+		}
+		
+		note = note.substring(1,note.length()-1);
+		
 		for (int i = 0; i < size; i++) {
 			notificationReceivers.get(i).onNotification(note);
 		}

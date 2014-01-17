@@ -39,6 +39,9 @@ public class NavTree {
 		navTree.clear();
 		int size = list.size();
 		ArrayList<Node> aux = new ArrayList<Node>();
+		aux.add(new Node("voltar", new Rect(), null));
+		navTree.add(aux);
+		aux = new ArrayList<Node>();
 		Node node;
 		if (size > 0) {
 			aux.add(list.get(0));
@@ -95,6 +98,7 @@ public class NavTree {
 	 * 
 	 */
 	int getCurrentIndex() {
+
 		if (index[0] == navTree.size() - 1
 				&& navTree.get(index[0]).get(0).getName().equals("SCROLL"))
 			return -55;
@@ -102,14 +106,20 @@ public class NavTree {
 		int aux_index = 0;
 		for (int i = 0; i < navTree.size(); i++) {
 			if (index[0] == i)
-				if (index[1] == -1)
-					return aux_index;
-				else
-					return aux_index + index[1];
+				if (index[1] == -1) {
+					Log.d(LT, "index: " + aux_index);
+
+					return aux_index-1;
+				} else {
+					Log.d(LT, "index: " + aux_index);
+
+					return aux_index + index[1]-1;
+				}
 			else
 				aux_index += navTree.get(i).size();
 		}
-		return aux_index;
+		Log.d(LT, "index: " + aux_index);
+		return aux_index-1;
 	}
 
 	/**
@@ -143,7 +153,7 @@ public class NavTree {
 			pause = false;
 			unpause = false;
 			Log.d(LT, "home1");
-			if(!AutoNav.keyboardState)
+			if (!AutoNav.keyboardState)
 				CoreController.home();
 
 		}
@@ -172,24 +182,26 @@ public class NavTree {
 	}
 
 	Node getCurrentNode() {
+		// Log.d(LT,"size"+ navTree.size() +" i0" +index[0]+ " i1"+index[1]);
 		if (navTree.size() > 0 && index[0] > -1 && index[1] > -1) {
 			return navTree.get(index[0]).get(index[1]);
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Reset collumn index of the autonav keyboard
 	 */
-	public void resetCollumIndex(){
-		index[1]=-1;
+	public void resetColumnIndex() {
+		index[1] = -1;
 	}
+
 	/**
 	 * Used in keyboard to nav the current row again after a touch
 	 */
 	public void prevRow() {
 		index[0]--;
-		
+
 	}
 
 	@Override
@@ -198,12 +210,15 @@ public class NavTree {
 	}
 
 	public int lineSize() {
-		if(navTree!=null && navTree.get(index[0])!=null)
+		if (navTree != null && index[0] > -1 && navTree.get(index[0]) != null)
 			return navTree.get(index[0]).size();
 		else
 			return 0;
 	}
-	
-	
+
+	public void resetColumnSearch() {
+		index[1] = -1;
+
+	}
 
 }

@@ -81,7 +81,7 @@ public class NodeListController {
 	/**
 	 * Select current focused node
 	 */
-	public void selectFocus() {
+	public String selectFocus() {
 		if (currentNavIndex != -1 && currentNavIndex < listCurrentNodes.size()) {
 			Node n = listCurrentNodes.get(currentNavIndex);
 			currentNavIndex = -1;
@@ -122,10 +122,14 @@ public class NodeListController {
 
 					}
 				}
+				return n.getName();
 			}
+			
 		}
 		if (visualFeedback)
 			FeedBack.clearHightlights();
+		
+		return "";
 
 	}
 
