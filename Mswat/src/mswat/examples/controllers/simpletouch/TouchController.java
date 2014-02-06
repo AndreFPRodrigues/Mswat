@@ -3,7 +3,8 @@ package mswat.examples.controllers.simpletouch;
 import mswat.controllers.ControlInterface;
 import mswat.core.CoreController;
 import mswat.interfaces.IOReceiver;
-import mswat.touch.TouchPatternRecognizer;
+import mswat.touch.TPRNexusS;
+import mswat.touch.TouchRecognizer;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
@@ -16,7 +17,7 @@ import android.util.Log;
  */
 public class TouchController extends ControlInterface implements IOReceiver {
 	private final String LT = "TouchController";
-	private TouchPatternRecognizer tpr;
+	private TouchRecognizer tpr;
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -29,7 +30,7 @@ public class TouchController extends ControlInterface implements IOReceiver {
 			Log.d(LT, "Touch controller initialised");
 
 			// initialise touch pattern Recogniser
-			tpr = new TouchPatternRecognizer();
+			tpr = CoreController.getActiveTPR();
 
 			// register ioReceiver
 			registerIOReceiver();
@@ -55,25 +56,34 @@ public class TouchController extends ControlInterface implements IOReceiver {
 	@Override
 	public void onUpdateIO(int device, int type, int code, int value,
 			int timestamp) {
-
+		if(tpr==null){
+			tpr=CoreController.getActiveTPR();
+		}
 		int touchType;
 		if ((touchType = tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
-
-			switch (touchType) {
-			case TouchPatternRecognizer.SLIDE:
-				navNext();
-				break;
-			case TouchPatternRecognizer.TOUCHED:
-				selectCurrent();
-				break;
-			case TouchPatternRecognizer.LONGPRESS: // Stops service
-				CoreController.stopService();
-
-				
-
-			}
+			Log.d(LT, "Touch Type" + touchType );
+			handleTouch(touchType);		
 		}
 
+	}
+	
+	private void handleTouch(int touchType){
+		switch (touchType) {
+		case TouchRecognizer.SLIDE:
+			navNext();
+			break;
+		case TouchRecognizer.TOUCHED:
+			selectCurrent();
+			break;
+		case TouchRecognizer.LONGPRESS: // Stops service
+			CoreController.stopService();
+		}
+	}
+
+	@Override
+	public void onTouchReceived(int type) {
+		handleTouch(type);
+		
 	}
 
 

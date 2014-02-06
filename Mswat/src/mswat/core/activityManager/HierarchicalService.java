@@ -3,6 +3,7 @@ package mswat.core.activityManager;
 import java.util.ArrayList;
 import java.util.List;
 
+import mswat.controllers.WifiControl;
 import mswat.core.CoreController;
 import mswat.core.calibration.CalibrationActivity;
 import mswat.core.feedback.FeedBack;
@@ -80,6 +81,7 @@ public class HierarchicalService extends AccessibilityService {
 				if (event.getClassName().toString().contains("EditText")
 						|| event.getClassName().toString()
 								.contains("MultiAutoCompleteTextView")) {
+					Log.d(LT, event.getSource().toString());
 					CoreController.startKeyboard();
 				}
 			} else {
@@ -96,38 +98,43 @@ public class HierarchicalService extends AccessibilityService {
 				currentParent = source;
 
 				// register keystrokes
-				if (logAtTouch
-						&& AccessibilityEvent.eventTypeToString(
-								event.getEventType()).contains("TEXT")) {
+				if (AccessibilityEvent.eventTypeToString(event.getEventType())
+						.contains("TEXT")) {
+					if (logAtTouch) {
+						if (event.getRemovedCount() > event.getAddedCount())
+							monitor.registerKeystroke("BackSpace");
+						else {
 
-					if (event.getRemovedCount() > event.getAddedCount())
-						monitor.registerKeystroke("BackSpace");
-					else {
-
-						if (event.getRemovedCount() != event.getAddedCount()) {
-							// When the before text is a space it needs this to
-							// properly
-							// detect the backspace
-							// Bug a string a char follow by a space "t " when
-							// using
-							// backspace it detects "t" instead of backspace
-							if ((event.getText().size() - 2) == event
-									.getBeforeText().length()
-									|| (event.getAddedCount() - event
-											.getRemovedCount()) > 1)
-								monitor.registerKeystroke("BackSpace");
-							else {
-								String keypressed = event.getText().toString();
-								keypressed = ""
-										+ keypressed
-												.charAt(keypressed.length() - 2);
-								if (keypressed.equals(" "))
-									keypressed = "Space";
-								monitor.registerKeystroke(keypressed);
+							if (event.getRemovedCount() != event
+									.getAddedCount()) {
+								// When the before text is a space it needs this
+								// to
+								// properly
+								// detect the backspace
+								// Bug a string a char follow by a space "t "
+								// when
+								// using
+								// backspace it detects "t" instead of backspace
+								if ((event.getText().size() - 2) == event
+										.getBeforeText().length()
+										|| (event.getAddedCount() - event
+												.getRemovedCount()) > 1)
+									monitor.registerKeystroke("BackSpace");
+								else {
+									String keypressed = event.getText()
+											.toString();
+									keypressed = ""
+											+ keypressed.charAt(keypressed
+													.length() - 2);
+									if (keypressed.equals(" "))
+										keypressed = "Space";
+									monitor.registerKeystroke(keypressed);
+								}
 							}
-						}
 
+						}
 					}
+					CoreController.updateKeyboardUI();
 
 				}
 				// update the current content list
@@ -183,7 +190,7 @@ public class HierarchicalService extends AccessibilityService {
 		boolean addScroll = false;
 		for (int i = 0; i < source.getChildCount(); i++) {
 			child = source.getChild(i);
-
+			// Log.d(LT, child.toString());
 			if (child != null) {
 
 				if (child.isScrollable() && !addScroll) {
@@ -246,7 +253,7 @@ public class HierarchicalService extends AccessibilityService {
 	/**
 	 * Print to log current view list node
 	 */
-	public void printViewItens(ArrayList<Node> listCurrentNodes) {
+	protected void printViewItens(ArrayList<Node> listCurrentNodes) {
 		int size = listCurrentNodes.size();
 		Log.d(LT,
 				"---------------------List State------------------------------");
@@ -285,8 +292,7 @@ public class HierarchicalService extends AccessibilityService {
 	 */
 	@Override
 	public void onServiceConnected() {
-		// getServiceInfo().flags =
-		// AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE;
+		getServiceInfo().flags = AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE;
 		// getServiceInfo().flags =
 		// AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
 
@@ -338,25 +344,34 @@ public class HierarchicalService extends AccessibilityService {
 		boolean broadcastIO = sharedPref.getBoolean(servPref.BROADCAST_IO,
 				false);
 		broadcastContent = sharedPref.getBoolean(servPref.BROADCAST_CONTENT,
-				false); 
+				false);
 
+		boolean wifi = sharedPref.getBoolean(servPref.WIFI,
+				false);
 		int touchIndex = sharedPref.getInt(servPref.TOUCH_INDEX, -1);
 
 		if ((sharedPref.getInt("s_width", (int) CoreController.S_WIDTH)) != 0) {
 			CoreController.S_WIDTH = sharedPref.getInt("s_width",
 					(int) CoreController.S_WIDTH);
-			 Log.d(LT, "width index stored" + CoreController.S_WIDTH);
-
 			CoreController.S_HEIGHT = sharedPref.getInt("s_height",
 					(int) CoreController.S_HEIGHT);
+
 		} else {
 			CoreController.S_WIDTH = 1024;
-			CoreController.S_HEIGHT = 960;
+			CoreController.S_HEIGHT = 960;  
 		}
 
 		String controller = sharedPref.getString(servPref.CONTROLLER, "null");
 
 		String keyboard = sharedPref.getString(servPref.KEYBOARD, "null");
+
+		// Start tpr
+		String tpr = sharedPref.getString(servPref.TPR, "null");
+
+		Intent intent = new Intent();
+		intent.setAction("mswat_tpr");
+		intent.putExtra("touchRecog", tpr);
+		sendBroadcast(intent);
 
 		// initialise feedback
 		fb = new FeedBack(this, windowManager, params);
@@ -365,10 +380,15 @@ public class HierarchicalService extends AccessibilityService {
 
 		// initialise monitor
 		monitor = new Monitor(this, broadcastIO, touchIndex);
-
+		
 		// initialise coreController
 		CoreController cc = new CoreController(nlc, monitor, this, controller,
-				calibration, logIO, logNav, logAtTouch, keyboard);
+				calibration, logIO, logNav, logAtTouch, keyboard, tpr);
+		
+		//initialise wifi controller
+		if(wifi){
+			WifiControl wc= new WifiControl();
+		}
 
 		// starts calibration activity
 		if (calibration) {
@@ -461,7 +481,7 @@ public class HierarchicalService extends AccessibilityService {
 	 */
 	public void storeTouchIndex(int index) {
 		sharedPref.edit().putInt(servPref.TOUCH_INDEX, index).commit();
-	} 
+	}
 
 	public void lockedScreen(boolean state) {
 		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);

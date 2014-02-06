@@ -3,6 +3,7 @@ package mswat.core.activityManager;
 import java.util.ArrayList;
 
 import android.graphics.Rect;
+import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 /**
@@ -12,6 +13,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
  * 
  */
 public class Node {
+	private final String LT = "NodeListController";
 
 	private int x;
 	private int y;
@@ -71,7 +73,11 @@ public class Node {
 	}
 
 	public boolean isInside(double x, double y) {
-
+		//Log.d(LT, "x:"+x + " y:"+ y+" Node:"+description+ " l:" + bounds.left + " r:"+ bounds.right + " t:" + bounds.top + " b:" + bounds.bottom + " w:" + bounds.width() + " h:" + bounds.height() );
+		
+		//Store for some reason has 480 width and 800 height occupying the whole screen so we ignore it
+		if(description.equals("Loja"))
+			return false;
 		return bounds.contains((int) x, (int) y);
 	}
 

@@ -8,7 +8,8 @@ import mswat.core.activityManager.Node;
 import mswat.interfaces.ContentReceiver;
 import mswat.interfaces.IOReceiver;
 import mswat.interfaces.NotificationReceiver;
-import mswat.touch.TouchPatternRecognizer;
+import mswat.touch.TPRNexusS;
+import mswat.touch.TouchRecognizer;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -27,6 +28,10 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 		ContentReceiver, NotificationReceiver {
 
 	private final String LT = "AutoNav";
+
+	// if auto nav has been activated
+	private static boolean autoNavState = false;
+
 	private int time = 3000;
 	private boolean navigate = true;
 	private static NavTree navTree;
@@ -39,12 +44,14 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 	private static boolean answeringCall = false;
 	private static boolean readingNote = false;
 
-	private TouchPatternRecognizer tpr;
+	private TouchRecognizer tpr = null;
 
 	private static Context c;
 
 	public static boolean keyboardState = false;
-	private static AutoNavKeyboard ank;
+
+	private String latestNote;
+	private ArrayList<String> toRead = new ArrayList<String>();
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -53,6 +60,8 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 		if (intent.getAction().equals("mswat_init")
 				&& intent.getExtras().get("controller").equals("autoNav")) {
 			Log.d(LT, "Auto Navigation initialised");
+
+			autoNavState = true;
 
 			// starts monitoring touchscreen
 			int deviceIndex = CoreController.monitorTouch();
@@ -67,7 +76,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 			registerNotificationReceiver();
 
 			// initialise touch pattern Recogniser
-			tpr = new TouchPatternRecognizer();
+			tpr = CoreController.getActiveTPR();
 
 			// initialise line/row navigation controller
 			if (navTree == null)
@@ -81,11 +90,14 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 			CoreController.clearHightlights();
 
 			// Handling calls
-		} else if (intent.getAction().equals(
-				"android.intent.action.PHONE_STATE")) {
+		} else if (autoNavState
+				&& intent.getAction().equals(
+						"android.intent.action.PHONE_STATE")) {
 			Log.d(LT, "call: " + intent.getExtras().getString("state"));
 
 			if (intent.getExtras().getString("state").equals("RINGING")) {
+				if (keyboardState && !handlingCall)
+					CoreController.stopKeyboard();
 				handlingCall = true;
 				keyboardState = false;
 
@@ -95,15 +107,17 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 				handlingCall = false;
 			} else if (intent.getExtras().getString("state").equals("IDLE")) {
 				answeringCall = false;
+				handlingCall = false;
 				CoreController.home();
 			}
 			c = context;
 
 			// Handling softkeyboard
 		} else {
-			if (intent.getAction().equals("mswat_keyboard")) {
+
+			if (autoNavState && intent.getAction().equals("mswat_keyboard")) {
 				keyboardState = intent.getBooleanExtra("status", false);
-				Log.d(LT, "KEYBOARD ENABLE ");
+				Log.d(LT, "KEYBOARD ENABLE " + keyboardState);
 
 			}
 
@@ -130,9 +144,14 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 	@Override
 	public void onNotification(String notification) {
 		Log.d(LT, "Notificacao " + notification);
+		if (latestNote != null && latestNote.equals(notification))
+			return;
 		readingNote = true;
 		readingNote = CoreController.waitFortextToSpeech(notification);
-
+		latestNote = notification;
+		if (navTree.pause && !navTree.unpause) {
+			toRead.add(latestNote);
+		}
 	}
 
 	@Override
@@ -142,104 +161,126 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 			if (navTree == null)
 				navTree = new NavTree();
 			createNavList(content);
-			if (handlingCall)
+			if (handlingCall) {
 				navTree.prepareCall();
-			// Log.d(LT, navTree.toString());
+				Log.d(LT, "Preparing call");
+				Log.d(LT, navTree.toString());
+			}
+			Log.d(LT, navTree.toString());
 		}
 	}
 
 	@Override
 	public void onUpdateIO(int device, int type, int code, int value,
 			int timestamp) {
-
+		if (tpr == null) {
+			tpr = CoreController.getActiveTPR();
+		}
 		// if keyboard is enabled ignores IO events
 		if (keyboardState) {
 			return;
 		}
 		// Debugg purposes stop the service
 		int touchType;
+
 		if ((touchType = tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
+			handleTouch(touchType);
 
-			Log.d(LT, "IO update");
+		}
 
-			switch (touchType) {
-			case TouchPatternRecognizer.LONGPRESS:
-				// Stops service
-				CoreController.stopService();
-				navigate = false;
-				break;
-			}
-			if (handlingCall && navTree.getCurrentNode() != null) {
-				if (navTree.getCurrentNode().getName().equals("atender")) {
-					navTree.pause = true;
-					answeringCall = true;
-					handlingCall = false;
-					CallManagement.answer(c);
+	}
 
+	private void handleTouch(int type) {
+		switch (type) {
+		case TouchRecognizer.LONGPRESS:
+			Log.d(LT, "LongPress");
+
+			// Stops service
+			CoreController.stopService();
+			navigate = false;
+			break;
+		}
+		if (handlingCall && !answeringCall) {
+
+			navTree.pause = true;
+			answeringCall = true;
+			handlingCall = false;
+			CallManagement.answer(c);
+
+		} else
+		// Terminate call in nexusS 4.1.2 the terminate button is the first
+		// index
+		if (answeringCall) {
+			Log.d(LT, "DESLIGUES");
+			focusIndex(0);
+			selectCurrent();
+		} else
+
+		// unpause autonavigation
+		if (navTree.pause) {
+			Log.d(LT, "Unpause");
+			// answeringCall=false;
+			updateNavTree = true;
+			navTree.unpause = true;
+			if (toRead.size() > 0) {
+				onNotification("Notificações");
+				for (int i = 0; i < toRead.size(); i++) {
+					onNotification(toRead.get(i));
 				}
-			} else
+				toRead.clear();
+			}
+		} else {
+			// either change navigation mode or select current focused
+			// node
+			if (navMode == NAV_TREE_LINE) {
+				navTree.nextNode();
 
-			// unpause autonavigation
-			if (navTree.pause) {
-				Log.d(LT, "Unpause");
-
-				handlingCall = false;
-				// answeringCall=false;
-				updateNavTree = true;
-				navTree.unpause = true;
-			} else {
-				// either change navigation mode or select current focused
-				// node
-				if (navMode == NAV_TREE_LINE) {
-					navTree.nextNode();
-
-					if (navTree.lineSize() == 1 || (navTree.getCurrentNode()!=null && navTree.getCurrentNode().getName().equals("SCROLL"))) {
-					
-						if (navTree.getCurrentNode() != null
-								&& navTree.getCurrentNode().getName()
-										.equals("Terminar")) {
-							navTree.resetColumnIndex();
-							answeringCall = false;
-							updateNavTree = true;
-							CoreController.home();
-						} else if (navTree.getCurrentNode() != null
-								&& navTree.getCurrentNode().getName()
-										.equals("voltar")) {
-							//Log.d(LT, CoreController.back() + " boolean");
-
-							
-							  if(!CoreController.back()) CoreController.home();
-							 
-						} else {
-
-							focusIndex(navTree.getCurrentIndex());
-							selectCurrent();
-						}
-					} else{
-						navMode = NAV_TREE_ROW;
-					}
-					navTree.resetColumnIndex();
-
-
-				} else {
-					navMode = NAV_TREE_LINE;
+				if (navTree.lineSize() == 1
+						|| (navTree.getCurrentNode() != null && navTree
+								.getCurrentNode().getName().equals("SCROLL"))) {
 
 					if (navTree.getCurrentNode() != null
 							&& navTree.getCurrentNode().getName()
 									.equals("Terminar")) {
-
+						navTree.resetColumnIndex();
 						answeringCall = false;
 						updateNavTree = true;
 						CoreController.home();
+					} else if (navTree.getCurrentNode() != null
+							&& navTree.getCurrentNode().getName()
+									.equals("voltar")) {
+						// Log.d(LT, CoreController.back() + " boolean");
+
+						if (!CoreController.back())
+							CoreController.home();
+
 					} else {
 
 						focusIndex(navTree.getCurrentIndex());
 						selectCurrent();
 					}
+				} else {
+					navMode = NAV_TREE_ROW;
+				}
+				navTree.resetColumnIndex();
+
+			} else {
+				navMode = NAV_TREE_LINE;
+
+				if (navTree.getCurrentNode() != null
+						&& navTree.getCurrentNode().getName()
+								.equals("Terminar")) {
+
+					answeringCall = false;
+					updateNavTree = true;
+					CoreController.home();
+				} else {
+
+					focusIndex(navTree.getCurrentIndex());
+					selectCurrent();
 				}
 			}
 		}
-
 	}
 
 	/**
@@ -252,7 +293,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 		if (navTree.pause && !keyboardState)
 			navTree.unpause = true;
 	}
-	
+
 	/**
 	 * Auto navigation thread responsible to automatically cycle through
 	 * lines/nodes and highlight them
@@ -315,7 +356,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 										(int) n.getBounds().width(), n
 												.getBounds().height(),
 										Color.CYAN);
-								Log.d(LT, "READ: " + n.getName());
+								// Log.d(LT, "READ: " + n.getName());
 
 								boolean waitFor = CoreController
 										.waitFortextToSpeech(n.getName());
@@ -332,6 +373,11 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 		auto.start();
 
+	}
+
+	@Override
+	public void onTouchReceived(int type) {
+		handleTouch(type);
 	}
 
 }

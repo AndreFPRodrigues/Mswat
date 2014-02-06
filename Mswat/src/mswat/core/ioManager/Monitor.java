@@ -13,7 +13,8 @@ import mswat.core.activityManager.HierarchicalService;
 import mswat.core.ioManager.Events.InputDevice;
 import mswat.core.logger.Logger;
 import mswat.examples.adapt.TouchAdapter;
-import mswat.touch.TouchPatternRecognizer;
+import mswat.touch.TPRNexusS;
+import mswat.touch.TouchRecognizer;
 
 public class Monitor {
 
@@ -26,13 +27,11 @@ public class Monitor {
 	// Core controller
 	CoreController cc;
 
+	private int touchIndex = -1;
 
-	private int touchIndex=-1;
-
-	private TouchPatternRecognizer tpr = new TouchPatternRecognizer();
+	private TPRNexusS tpr = new TPRNexusS();
 
 	boolean monitoring[];
-	
 
 	private static int IOMessagesThreshold = 50;
 
@@ -44,33 +43,33 @@ public class Monitor {
 
 	/**
 	 * Initialises list of devices Initialises Logger if logging is true
-	 * @param touchIndex2 
+	 * 
+	 * @param touchIndex2
 	 * 
 	 * @param logging
 	 */
-	public Monitor( HierarchicalService hs, boolean broadcastIO, int touchIndex) {
+	public Monitor(HierarchicalService hs, boolean broadcastIO, int touchIndex) {
 		Events ev = new Events();
 		dev = ev.Init();
-		
-		this.touchIndex= touchIndex;
+
+		this.touchIndex = touchIndex;
 		monitoring = new boolean[dev.size()];
-		
 
 		this.broadcastIO = broadcastIO;
 
 	}
 
 	/**
-	 * Log keystroke if logger is enable
-	 * TODO
+	 * Log keystroke if logger is enable TODO
+	 * 
 	 * @param keypressed
 	 */
 	public void registerKeystroke(String keypressed) {
-		
-		//TODO Log keystrokes
+
+		// TODO Log keystrokes
 		CoreController.updateLoggers("Previous Keystroke: " + keypressed);
-		//if (logging)
-			//Logger.registerTouch("Previous Keystroke: " + keypressed);
+		// if (logging)
+		// Logger.registerTouch("Previous Keystroke: " + keypressed);
 
 	}
 
@@ -127,11 +126,13 @@ public class Monitor {
 		Thread b = new Thread(new Runnable() {
 
 			public void run() {
-				TouchPatternRecognizer tp= new TouchPatternRecognizer();
 				Looper.prepare();
-				do{
+				TouchRecognizer tp;
+				do {
+					tp = CoreController.getActiveTPR();
+
 					SystemClock.sleep(500);
-				}while (touchIndex==-1);
+				} while (touchIndex == -1 || tp == null);
 				InputDevice idev = dev.get(touchIndex);
 				while (calibrating) {
 					if (idev.getOpen() && idev.getPollingEvent() == 0) {
@@ -141,7 +142,8 @@ public class Monitor {
 						int value = idev.getSuccessfulPollingValue();
 
 						if (calibrating)
-							tp.identifyOnRelease(type, code, value, idev.getTimeStamp());
+							tp.identifyOnRelease(type, code, value,
+									idev.getTimeStamp());
 
 					}
 				}
@@ -195,15 +197,15 @@ public class Monitor {
 								int code = idev.getSuccessfulPollingCode();
 								int value = idev.getSuccessfulPollingValue();
 								int timestamp = idev.getTimeStamp();
-								Log.d(LT, type + " " + code + " " + value + " " +  timestamp );
-								CoreController.updateIOReceivers(
-										index, type, code, value,
-										timestamp);
-							
-								 /*
+								//Log.d(LT, type + " " + code + " " + value + " "
+									//	+ timestamp);
+								CoreController.updateIOReceivers(index, type,
+										code, value, timestamp);
+
+								/*
 								 * if (logging) { logger.registerTouch(message);
-								 * }*/
-							
+								 * }
+								 */
 
 								// Gather io events and only broadcast if
 								// events gathered are > ioMessagesThreshold
@@ -253,8 +255,6 @@ public class Monitor {
 									}
 								}
 
-							
-
 							}
 						}
 					}
@@ -298,8 +298,6 @@ public class Monitor {
 		touchIndex = index;
 	}
 
-
-
 	/**
 	 * Creates a virtual touch drive
 	 */
@@ -323,10 +321,6 @@ public class Monitor {
 			return -1;
 
 	}
-
-	
-
-
 
 	private static int[] convertIntegers(List<Integer> integers) {
 		int[] ret = new int[integers.size()];

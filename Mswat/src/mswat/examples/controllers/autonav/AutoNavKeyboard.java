@@ -12,24 +12,36 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.WindowManager;
 import android.webkit.WebView.FindListener;
+import android.widget.EditText;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import mswat.core.CoreController;
 import mswat.core.activityManager.R;
 import mswat.interfaces.IOReceiver;
 import mswat.keyboard.SwatKeyboard;
-import mswat.touch.TouchPatternRecognizer;
+import mswat.touch.TPRNexusS;
+import mswat.touch.TouchRecognizer;
 
 public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	private final String LT = "Keyboard";
 
 	private Context c;
-	private WindowManager windowManager;
-	private WindowManager.LayoutParams params;
-	private RelativeLayout overlay;
+	private static WindowManager windowManager;
+	private static WindowManager.LayoutParams params;
+	private static RelativeLayout overlay;
 
-	private int keyIndex;
+	private static int keyIndex;
 
-	private TouchPatternRecognizer tpr;
+	private TouchRecognizer tpr;
+
+	private final int DOWN = 0;
+	private final int UP = 1;
+	private int direction = DOWN;
+
+	private StringBuilder lastWord = new StringBuilder();
+	private String nodeText;
+
+	private StringBuilder editText = new StringBuilder();
 
 	/**
 	 * Creates the struture of the keyboard to be navigated in collum-row style
@@ -42,6 +54,8 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 			char c = (char) (i + 'a');
 
 			if (c == 'e' || c == 'i' || c == 'o' || c == 'u') {
+				row.add("para cima");
+				row.add("para baixo");
 				table.add(row);
 				row = new ArrayList<String>();
 			}
@@ -64,7 +78,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	 * Auto navigation thread responsible to automatically cycle through
 	 * lines/nodes and highlight them
 	 */
-	private boolean navigate = false;
+	private static boolean navigate = false;
 	private int time = 3000;
 	private final int NAV_TREE_ROW = 0;
 	private final int NAV_TREE_LINE = 1;
@@ -72,6 +86,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 	private void autoNav() {
 		navigate = true;
+		resetSearch();
 		Thread auto = new Thread(new Runnable() {
 			public void run() {
 
@@ -83,11 +98,16 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 					switch (navMode) {
 					case NAV_TREE_LINE:
-						navDown();
+						if (direction == DOWN)
+							navDown();
+						else
+							navUp();
 						CoreController.textToSpeech(getCurrent() + " Linha");
 						break;
 					case NAV_TREE_ROW:
 						if (navRight()) {
+							resetSearch();
+							direction = DOWN;
 							navMode = NAV_TREE_LINE;
 						} else {
 							boolean waitFor = CoreController
@@ -120,7 +140,30 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 			}
 		});
+	}
 
+	/**
+	 * Show keyboard layout
+	 */
+	public void writeToTextBox(final Context c, final String text) {
+
+		Handler hightligherHandler = new Handler();
+		hightligherHandler.post(new Runnable() {
+			public void run() {
+
+				if (overlay != null)
+					windowManager.removeView(overlay);
+				LayoutInflater layoutInflater = (LayoutInflater) c
+						.getSystemService(c.LAYOUT_INFLATER_SERVICE);
+				overlay = (RelativeLayout) layoutInflater.inflate(
+						R.layout.autonavkeyboard, null);
+				TextView tv = (TextView) overlay
+						.findViewById(R.id.TextViewText);
+				tv.append(text);
+				windowManager.addView(overlay, params);
+
+			}
+		});
 	}
 
 	/**
@@ -128,15 +171,19 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	 */
 	@Override
 	public void hide() {
-		windowManager.removeView(overlay);
-		overlay.removeAllViews();
-		overlay = null;
-		CoreController.unregisterIOReceiver(keyIndex);
-		CoreController.stopKeyboard();
-		navigate = false;
+		if (overlay != null && navigate) {
+			navigate = false;
+			windowManager.removeView(overlay);
+			overlay.removeAllViews();
+			overlay = null;
+			CoreController.unregisterIOReceiver(keyIndex);
+			CoreController.stopKeyboard();
+			windowManager = null;
+			editText = new StringBuilder();
+		}
 
 	}
-	
+
 	/**
 	 * Starts up the keyboard
 	 */
@@ -155,13 +202,19 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 		// Create keyboard overlay
 		show(c);
 
+		Log.d(LT, "STARTED KEYBOARD");
+
 		// start monitoring touch
 		int deviceIndex = CoreController.monitorTouch();
 		keyIndex = registerIOReceiver();
-		
-		
-		//start autonavigation of the keyboard
+
+		// initialise touch pattern Recogniser
+		tpr = CoreController.getActiveTPR();
+		// start autonavigation of the keyboard
 		autoNav();
+
+		for (int i = 0; i < 100; i++)
+			del();
 
 	}
 
@@ -171,6 +224,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		// Triggered when the service starts
+
 		if (intent.getAction().equals("mswat_init")
 				&& intent.getExtras().get("keyboard").equals("AutoNav")) {
 
@@ -178,9 +232,11 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 			createAutoNavKeyboard();
 
-			// initialise touch pattern Recogniser
-			tpr = new TouchPatternRecognizer();
+		} else if (intent.getAction().equals("mswat_keyboard")
+				&& (!intent.getExtras().getBoolean("status"))) {
+			hide();
 		}
+
 	}
 
 	@Override
@@ -195,36 +251,76 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	@Override
 	public void onUpdateIO(int device, int type, int code, int value,
 			int timestamp) {
-		if ((tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
-			// either change navigation mode or select current focused
-			// node
-			if (navMode == NAV_TREE_LINE) {
-				navMode = NAV_TREE_ROW;
-				resetColumnSearch();
-			} else {
-				navMode = NAV_TREE_LINE;
+		int touchtype;
+		if ((touchtype=tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
+			handleTouch(touchtype);
+		}
+	}
 
-				// Log.d(LT, "Write: " + navTree.getCurrentNode().getName());
+	private void handleTouch(int type) {
+		
+		Log.d(LT, "TOUCHED KEYBOARD");
+		// either change navigation mode or select current focused
+		// node
+		if (navMode == NAV_TREE_LINE) {
+			navMode = NAV_TREE_ROW;
+			resetColumnSearch();
+		} else {
+			navMode = NAV_TREE_LINE;
 
-				String nodeText = getCurrent();
-				if (nodeText != null) {
-					if (nodeText.length() > 2) {
-						if (nodeText.equals("Espaço"))
-							writeChar(' ');
-						else if (nodeText.equals("Ponto"))
-							writeChar('.');
-						else if (nodeText.equals("Apagar"))
-							backSpace();
-						else {
-							hide();
-						}
-					} else
-						writeString(nodeText);
+			// Log.d(LT, "Write: " + navTree.getCurrentNode().getName());
 
+			nodeText = getCurrent();
+			if (nodeText != null) {
+				if (nodeText.length() > 2) {
+					if (nodeText.equals("Espaço")) {
+						writeChar(' ');
+						CoreController.waitFortextToSpeech(lastWord.toString());
+						lastWord = new StringBuilder();
+					} else if (nodeText.equals("Ponto")) {
+						writeChar('.');
+						editText.append(".");
+						resetSearch();
+
+					} else if (nodeText.equals("Apagar")) {
+						backSpace();
+						editText.deleteCharAt(editText.length() - 1);
+
+						resetSearch();
+					} else if (nodeText.contains("cima")) {
+						direction = UP;
+						resetSearchUp();
+					} else if (nodeText.contains("baixo")) {
+						resetSearchDown();
+						direction = DOWN;
+
+					} else {
+						hide();
+					}
+				} else {
+					writeString(nodeText);
+					lastWord.append(nodeText);
+					editText.append(nodeText);
+					CoreController.waitFortextToSpeech(nodeText);
+					direction = DOWN;
 					resetSearch();
+
 				}
 			}
 		}
+
+	}
+
+	@Override
+	public void update() {
+		if (nodeText != null)
+			writeToTextBox(c, editText.toString());
+
+	}
+
+	@Override
+	public void onTouchReceived(int type) {
+		handleTouch(type);
 	}
 
 }

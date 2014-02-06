@@ -81,16 +81,24 @@ public class NavTree {
 			navTree.add(aux);
 		}
 	}
-
+	/**
+	 * Only prepared for nexus S android 4.1.2 default phone call
+	 */
 	public void prepareCall() {
-		// Log.d(LT, "before: " + navTree.toString());
-		if (navTree.get(0).size() > 1) {
-			navTree.get(0).remove(0);
+		 Log.d(LT, "before: " + navTree.toString());
+		if (navTree.get(1).size() > 1) {
+			Node n = navTree.get(1).get(1);
+			navTree.clear();
+
 			ArrayList<Node> answerNode = new ArrayList<Node>();
 			answerNode.add(new Node("atender", new Rect(), null));
+			answerNode.add(n);
+			navTree.add(answerNode);
+			answerNode = new ArrayList<Node>();
+			answerNode.add(n);
 			navTree.add(answerNode);
 		}
-		// Log.d(LT, "after: " + navTree.toString());
+		 Log.d(LT, "after: " + navTree.toString());
 	}
 
 	/**
@@ -152,9 +160,9 @@ public class NavTree {
 			index[0] = 0;
 			pause = false;
 			unpause = false;
-			Log.d(LT, "home1");
-			if (!AutoNav.keyboardState)
-				CoreController.home();
+			
+			/*if (!AutoNav.keyboardState)
+				CoreController.home();*/
 
 		}
 
@@ -210,7 +218,7 @@ public class NavTree {
 	}
 
 	public int lineSize() {
-		if (navTree != null && index[0] > -1 && navTree.get(index[0]) != null)
+		if (navTree != null && navTree.size()>0 && index[0] > -1 && navTree.get(index[0]) != null)
 			return navTree.get(index[0]).size();
 		else
 			return 0;

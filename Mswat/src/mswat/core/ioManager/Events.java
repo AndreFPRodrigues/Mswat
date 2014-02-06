@@ -119,11 +119,14 @@ public class Events {
 		public boolean Open(boolean forceOpen) {
 
 			int res = OpenDev(m_nId);
+
 			// if opening fails, we might not have the correct permissions, try
 			// changing 660 to 666
 			if (res != 0) {
 				// possible only if we have root
+
 				if (forceOpen && Shell.isSuAvailable()) {
+
 					// set new permissions
 					Shell.runCommand("chmod 666 " + m_szPath);
 
@@ -131,6 +134,8 @@ public class Events {
 					res = OpenDev(m_nId);
 				}
 			}
+			Log.d("coc", "CONNECTED65");  
+
 			m_szName = getDevName(m_nId);
 			m_bOpen = (res == 0);
 			return m_bOpen;
@@ -162,12 +167,17 @@ public class Events {
 	public ArrayList<InputDevice> Init() {
 		ArrayList<InputDevice> m_Devs = new ArrayList<InputDevice>();
 		// m_Devs.clear();
+
 		int n = ScanFiles(); // return number of devs
-		
+ 
 		for (int i = 0; i < n; i++) {
+
 			m_Devs.add(new InputDevice(i, getDevPath(i)));
+
 			m_Devs.get(i).Open(true);
+
 		}
+		Log.d("coc", "CONNECTED612" + m_Devs.toString());
 
 		return m_Devs;
 	}

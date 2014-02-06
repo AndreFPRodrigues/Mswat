@@ -3,6 +3,7 @@ package mswat.core;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import mswat.controllers.WifiControl;
 import mswat.core.activityManager.HierarchicalService;
 import mswat.core.activityManager.Node;
 import mswat.core.activityManager.NodeListController;
@@ -13,6 +14,7 @@ import mswat.interfaces.ContentReceiver;
 import mswat.interfaces.IOReceiver;
 import mswat.interfaces.NotificationReceiver;
 import mswat.keyboard.SwatKeyboard;
+import mswat.touch.TouchRecognizer;
 import android.app.KeyguardManager;
 import android.app.KeyguardManager.KeyguardLock;
 import android.content.Context;
@@ -30,11 +32,11 @@ import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 
-public class CoreController {
+public class CoreController { 
 
 	// debugging tag
 	private final static String LT = "CoreController";
-
+ 
 	// Modules where to forward messages
 	private static NodeListController nController;
 	private static Monitor monitor;
@@ -53,8 +55,11 @@ public class CoreController {
 	private static ArrayList<Logger> loggers;
 
 	// active keyboard
-	private static SwatKeyboard activeKeyboard;
-
+	private static SwatKeyboard activeKeyboard=null;
+	
+	//active touch recognizer
+	private static TouchRecognizer tpr=null;
+	private static String tprPreference;
 	// Context
 	private static HierarchicalService hs;
 
@@ -63,7 +68,7 @@ public class CoreController {
 	public final static int NAV_PREV = 1;
 	public final static int SELECT_CURRENT = 2;
 	public final static int FOCUS_INDEX = 3;
-
+	public final static int HIGHLIGHT_INDEX = 4;
 
 	// IO Variables
 	public final static int SET_BLOCK = 0;
@@ -92,10 +97,11 @@ public class CoreController {
 	 * @param logNav 
 	 * @param logAtTouch 
 	 * @param keyboard
+	 * @param tpr2 
 	 */
 	public CoreController(NodeListController nController, Monitor monitor,
 			HierarchicalService hierarchicalService, String controller,
-			boolean waitForCalibration, boolean logIO, boolean logNav, boolean logAtTouch, String keyboard) {
+			boolean waitForCalibration, boolean logIO, boolean logNav, boolean logAtTouch, String keyboard, String tprPreference) {
 		CoreController.monitor = monitor;
 		CoreController.nController = nController;
 		hs = hierarchicalService;
@@ -109,6 +115,7 @@ public class CoreController {
 		this.controller = controller;
 		this.logIo = logIO;
 		this.keyboard = keyboard;
+		this.tprPreference= tprPreference;
 		this.logNav=logNav;
 		this.logAtTouch=logAtTouch;
 
@@ -117,7 +124,7 @@ public class CoreController {
 		// Broadcast the init signal
 		if (!waitForCalibration) {
 
-			startService(controller, logIO, logAtTouch,  keyboard);
+			startService();
 		} else
 			Log.d(LT, "CALIBRATION");
 
@@ -131,6 +138,8 @@ public class CoreController {
 		display.getSize(size);
 		M_WIDTH = size.x;
 		M_HEIGHT = size.y;
+		Log.d(LT,"w:" + M_WIDTH + " h:" + M_HEIGHT);
+
 	}
 
 	/***********************************
@@ -166,6 +175,8 @@ public class CoreController {
 	 */
 	public static void unregisterIOReceiver(int key) {
 		ioReceivers.remove(key);
+		Log.d(LT, "io:" + ioReceivers.size());
+
 	}
 
 	/**
@@ -181,9 +192,17 @@ public class CoreController {
 			int value, int timestamp) {
 		int size = ioReceivers.size();
 		for (int i = 0; i < size; i++) {
-			ioReceivers.get(i).onUpdateIO(device, type, code, value, timestamp);
+			
+				ioReceivers.get(i).onUpdateIO(device, type, code, value, timestamp);
 		}
-
+	}
+	
+	public static void sendTouchIOReceivers(int type) {
+		int size = ioReceivers.size();
+		for (int i = 0; i < size; i++) {
+			
+				ioReceivers.get(i).onTouchReceived(type);
+		}
 	}
 
 	/**
@@ -423,6 +442,9 @@ public class CoreController {
 				case FOCUS_INDEX:
 					nController.focusIndex(index);
 					break;
+				case HIGHLIGHT_INDEX:
+					nController.highlightIndex(index);
+					break;
 
 				}
 			}
@@ -458,6 +480,62 @@ public class CoreController {
 	 */
 	public static String getNodeAt(double x, double y) {
 		return nController.getNodeAt(xToScreenCoord(x), yToScreenCoord(y));
+	}
+	public static Node getNodeByIndex(int index) {
+		
+		return nController.getNodeByIndex(index);
+	}
+	
+	/**
+	 * Return the index of the node that contains point with coord x and y
+	 * 
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public static int getNodeIndexAt(double x, double y) {
+		return nController.getNodeIndexAt(xToScreenCoord(x), yToScreenCoord(y));
+	}
+	
+	public static String getNodeNameByIndex(int index) {
+		return nController.getNodeNameByIndex(index);
+	}
+	
+	/**
+	 * Return the index of the node by name
+	 * 
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public static int getNodeIndexByName(String name) {
+		return nController.getNodeIndexByName(name);
+	}
+
+	/**
+	 * Return a array string with the descriptions of the 4  nearest nodes (if they exist) in the four directions
+	 * 
+	 * 
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public static String[] getNearNode(int x, int y, int radius) {
+		return nController.getNearNode(xToScreenCoord(x), yToScreenCoord(y), radius);
+	}
+	
+	/**
+	 * Return index of the nearest node
+	 * 
+	 * 
+	 * @param x
+	 * @param y
+	 * @param lastUp 
+	 * @param doubleClickLastUp 
+	 * @return
+	 */
+	public static int getNearestNode(int x, int y, String node1, String node2) {
+		return nController.getNearestNode(xToScreenCoord(x), yToScreenCoord(y), node1, node2);
 	}
 
 	/**
@@ -552,7 +630,7 @@ public class CoreController {
 	 */
 	public static void addHightlight(int marginTop, int marginLeft,
 			float alpha, int width, int height) {
-		FeedBack.addHightlight(marginTop, marginLeft, alpha, width, height);
+		FeedBack.addHighlight(marginTop, marginLeft, alpha, width, height, Color.BLUE);
 	}
 
 	/*************************************************
@@ -567,6 +645,8 @@ public class CoreController {
 	 * @return
 	 */
 	public static int xToScreenCoord(double x) {
+		//Log.d(LT, "Mwidth:" + M_WIDTH + " Swidth:" + S_WIDTH + " x:" + x);
+		//Log.d(LT, "m height:" + M_HEIGHT);
 		return (int) (M_WIDTH / S_WIDTH * x);
 	}
 
@@ -577,6 +657,8 @@ public class CoreController {
 	 * @return
 	 */
 	public static int yToScreenCoord(double y) {
+		//Log.d(LT, "Mheight:" + M_HEIGHT + " Sheight:" + S_HEIGHT + " y:" + y);
+
 		return (int) (M_HEIGHT / S_HEIGHT * y);
 	}
 
@@ -587,19 +669,24 @@ public class CoreController {
 		hs.sendBroadcast(intent);
 		hs.stopService();
 	}
+	
+	public static void stopServiceNoBroadCast() {
+		hs.stopService();
+	}
 
-	private static void startService(String controller, boolean logIO,
-			boolean logAtTouch, String keyboard) {
-		
+	private static void startService() {
+		 
 		Log.d(LT, "STARTING SERVICE");
 		// Broadcast event
 		Intent intent = new Intent();
 		intent.setAction("mswat_init");
 		intent.putExtra("controller", controller);
-		intent.putExtra("logIO", logIO);
+		intent.putExtra("logIO", logIo);
 		intent.putExtra("logAtTouch", logAtTouch);
 		intent.putExtra("keyboard", keyboard);
 		hs.sendBroadcast(intent);
+		
+	
 	}
 
 	public void setCalibration() {
@@ -608,16 +695,18 @@ public class CoreController {
 
 	public static void stopCalibration() {
 		monitor.stopCalibration();
-		startService(controller, logIo, logAtTouch, keyboard);
+		startService();
 	}
 
 	public static void setScreenSize(int width, int height) {
+		height=height-60;
 		CoreController.S_HEIGHT = height;
 		CoreController.S_WIDTH = width;
+		//Log.d(LT, "width:" + width + " height:" + height);
 		hs.storeScreenSize(width, height);
 	}
 
-	/**
+	/** 
 	 * Returns to home
 	 */
 	public static void home() {
@@ -679,6 +768,12 @@ public class CoreController {
 		intent.putExtra("status", true);
 		hs.sendBroadcast(intent);
 	}
+	
+	public static void updateKeyboardUI() {
+		if (activeKeyboard != null)
+			activeKeyboard.update();
+		
+	}
 	public static void stopKeyboard(){
 		// Broadcast event
 				Intent intent = new Intent();
@@ -691,6 +786,15 @@ public class CoreController {
 		Intent intent = new Intent();
 		intent.setAction("mswat_pressKey");
 		intent.putExtra("code", code);
+		intent.putExtra("direct", false);
+		hs.sendBroadcast(intent);
+	}
+	
+	public static void callKeyboardWriteDirect(int code) {
+		Intent intent = new Intent();
+		intent.setAction("mswat_pressKey");
+		intent.putExtra("code", code);
+		intent.putExtra("direct", true);
 		hs.sendBroadcast(intent);
 	}
 
@@ -705,5 +809,34 @@ public class CoreController {
 	public static void registerActivateKeyboard(SwatKeyboard keyboard) {
 		activeKeyboard = keyboard;
 	}
+	
+	public static void registerActivateTouch(TouchRecognizer tpr2) {
+		tpr = tpr2;
+	}
+	
+	public static TouchRecognizer getActiveTPR(){
+		return tpr;
+	}
 
+	
+	//Screen reader function convert pixels to milimeter for android nexus s
+	public static int convertToMilY(int y){
+		return (124*y)/800*5;
+	}
+	//Screen reader function convert pixels to milimeter for android nexus s
+	public static int convertToMilX(int x){
+			return (63*x)/480 *5;
+		}
+	
+	public static double distanceBetween(double x, double y , double x1, double y1) {
+		return Math.sqrt(Math.pow(y - y1, 2) + Math.pow(x - x1, 2));
+	}
+
+	public static void writeToLog(ArrayList<String> toLog, String filepath) {
+		if(loggers.size()>0)
+			loggers.get(0).registerToLog(toLog, filepath);
+		
+	}
+
+	
 }

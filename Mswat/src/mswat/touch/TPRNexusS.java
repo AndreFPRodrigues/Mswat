@@ -2,6 +2,10 @@ package mswat.touch;
 
 import java.util.ArrayList;
 
+import mswat.core.CoreController;
+
+import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 /**
@@ -13,51 +17,24 @@ import android.util.Log;
  * @author Andre Rodrigues
  * 
  */
-public class TouchPatternRecognizer {
+public class TPRNexusS extends TouchRecognizer {
 
-	private final String LT = "TouchRec";
+	private final String LT = "TouchRecS";
 
-	// Touch types on release
-	public final static int TOUCHED = 0;
-	public final static int SLIDE = 1;
-	public final static int LONGPRESS = 2;
-	
-	// Touch types on change
-	public final static int DOWN = 0;
-	public final static int MOVE = 1;
-	public final static int UP = 2;
-	
-	//input types
-	private final int POSITION_X= 53;
-	private final int POSITION_Y= 54;
-	private final int PRESSURE= 58;
-	private final int TOUCH_MAJOR= 48;
-	private final int TRACKING_ID= 57;
-	private final int SYN_MT_REPORT=2;
-	private final int SYN_REPORT=0;
-	
-	// identifier variables
-	private int lastX;
-	private int lastY;
-	private int slideXorigin;
-	private int slideYorigin;
-	private int lastEventCode = -1;
-	private int pressure;
-	private int touchSize;
-	private int identifier;
+	@Override
+	public void onReceive(Context context, Intent intent) {
+		
+		Log.d(LT, "received TPR");
 
-	// Array to store all touch events
-	private ArrayList<TouchEvent> touches = new ArrayList<TouchEvent>();
+		// Triggered when the service starts
+		if (intent.getAction().equals("mswat_tpr")
+				&& intent.getExtras().get("touchRecog").equals("nexusS")) {
+			Log.d(LT, "register TPR");
+			CoreController.registerActivateTouch(this);
+
+		}
+	}
 	
-	//number of fingers used
-	private int numberTouches = 0;
-	private ArrayList <Integer > id_touches=new ArrayList<Integer>();
-	private int idFingerUp;
-	private int biggestIdentifier=0;
-	
-	//used to prevent double tap
-	private int lastTouch=0;
-	private int doubleTapThreshold=1000;
 	/**
 	 * Identify type of touch (slide/touch/long press)
 	 * 
@@ -91,28 +68,29 @@ public class TouchPatternRecognizer {
 	 * @return (-1) -> no touch identified yet (0) -> touch identified (1) ->
 	 *         slide identified (2) -> LongPress identified
 	 */
+	@Override
 	public int identifyOnRelease(int type, int code, int value, int timestamp) {
-		 Log.d(LT,"t:"+ type+ " c:" + code + " v:"+ value);
+		// Log.d(LT,"t:"+ type+ " c:" + code + " v:"+ value);
 		if(code==TRACKING_ID){
 			identifier=value;
 		}else
 		if (code == PRESSURE)
 			pressure = value;
 		else if (code == TOUCH_MAJOR)
-			touchSize = value;
+			touchMajor = value;
 		if (code == POSITION_X)
 			lastX = value;
 		else if (code == POSITION_Y)
 			lastY = value;
 		else if (code == SYN_MT_REPORT && value == 0) {
-			TouchEvent p = new TouchEvent(lastX, lastY, timestamp, pressure, touchSize,identifier );
+			TouchEvent p = new TouchEvent(lastX, lastY, timestamp, pressure, touchMajor,-1,identifier );
 			touches.add(p);
 		}
 		if (code == SYN_MT_REPORT && lastEventCode == SYN_REPORT && touches.size() > 0) {
 			lastEventCode = -1;
 			//prevents double tap
 			if((lastTouch-timestamp)<-doubleTapThreshold){
-				Log.d(LT, "last time:"+lastTouch+" timestamp:" +timestamp + " diference" + (lastTouch-timestamp));
+				//Log.d(LT, "last time:"+lastTouch+" timestamp:" +timestamp + " diference" + (lastTouch-timestamp));
 				lastTouch=timestamp;
 				return identifyTouch();
 			}
@@ -129,6 +107,7 @@ public class TouchPatternRecognizer {
 	 * @return (-1) -> no touch identified yet (0) -> down identified (1) ->
 	 *         move identified (2) -> up identified
 	 */
+	@Override
 	public int identifyOnChange(int type, int code, int value , int timestamp){
 		
 		switch(code){
@@ -142,13 +121,13 @@ public class TouchPatternRecognizer {
 				pressure=value;
 				break;
 			case TOUCH_MAJOR:
-				touchSize=value;
+				touchMajor=value;
 				break;
 			case TRACKING_ID:
 				identifier=value;			
 				break;
 			case SYN_MT_REPORT:
-				TouchEvent p = new TouchEvent(lastX, lastY, timestamp, pressure, touchSize,identifier);
+				TouchEvent p = new TouchEvent(lastX, lastY, timestamp, pressure, touchMajor,-1,identifier);
 				touches.add(p);
 				
 				//register touch id (alive), to detect ups on multi touch
@@ -160,7 +139,8 @@ public class TouchPatternRecognizer {
 					touches.clear();
 					numberTouches=0;
 					biggestIdentifier=0;
-					return UP;
+					idFingerUp=0;
+					return UP;  
 				}
 				//first down touch
 				if(touches.size()<2){
@@ -168,12 +148,13 @@ public class TouchPatternRecognizer {
 					return DOWN;
 				}
 				//down if another finger is used
-				if(identifier> biggestIdentifier) {
+				if(identifier> biggestIdentifier ) {
 					biggestIdentifier=identifier;
 					lastEventCode = -1;
 					numberTouches++;
 					return DOWN;
 				}
+				//Log.d(LT,"touches size:" + touches.size()+ " num:" + numberTouches + " idTouches:" +id_touches.toString());
 				
 				//check if the touch event moved
 				if(checkIfMoved(p)){
@@ -183,7 +164,7 @@ public class TouchPatternRecognizer {
 				break;
 			case SYN_REPORT:
 				if(id_touches.size()<numberTouches+1){
-					Log.d(LT, " Syn report up");
+					//Log.d(LT, " Syn report up");
 
 					boolean fingerSet=false;
 					for(int i =0;i<id_touches.size();i++){
@@ -196,6 +177,10 @@ public class TouchPatternRecognizer {
 						idFingerUp=id_touches.size();
 					id_touches.clear();
 					numberTouches--;
+					
+					//added for screen reader
+					clearTouchesFromId(idFingerUp);
+					
 					return UP;
 				}
 				id_touches.clear();
@@ -208,64 +193,17 @@ public class TouchPatternRecognizer {
 		return -1;
 	}
 	
-	/**
-	 * Checks if the touch event moved more than 5px
-	 * if not it returns false
-	 * @param p
-	 * @return
-	 */
-	private boolean checkIfMoved(TouchEvent p) {
-		TouchEvent te;
-		for(int i=touches.size()-2;i>0;i--){
-			if((te=touches.get(i)).getIdentifier()==p.getIdentifier())
-				return checkDistance(p,te);
-		}
-		return false;
+	private void clearTouchesFromId(int idFingerUp2) {
+		// TODO Auto-generated method stub
+		
 	}
 
-	/**
-	 * Check if distance between touch events is greater than 5px in any axis
-	 * @param p
-	 * @param te
-	 * @return
-	 */
-	private boolean checkDistance(TouchEvent p, TouchEvent te) {
 
-		if(Math.pow((p.getX()-te.getX()),2)>25)
-			return true;
-		if(Math.pow((p.getY()-te.getY()),2)>25)
-			return true;		
-		return false;
-	}
 
-	public int getLastX() {
-		return lastX;
-	}
 
-	public int getLastY() {
-		return lastY;
-	}
 
-	public int getOriginX() {
-		return slideXorigin;
-	}
 
-	public int getOriginY() {
-		return slideXorigin;
-	}
 
-	public int getPressure() {
-		return pressure;
-	}
-	public int getIdentifier() {
-		return identifier;
-	}
-	public int getTouchSize() {
-		return touchSize;
-	}
 
-	public int getIdFingerUp() {
-		return idFingerUp;
-	}
 
 }

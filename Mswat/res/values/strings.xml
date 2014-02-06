@@ -9,6 +9,8 @@
     <string name="log1">Log IO</string>
     <string name="log2">Log at Touch</string>
     <string name="log3">Log navigation using the control interfaces</string>
+    <string name="wifi">Start wifi controller service</string>
+    <string name="wifiTitle">Wifi controller</string>
     <string name="audioFeed1">Audio Feedback</string>
     <string name="audioFeed">Set Audio Feedback</string>
     <string name="calibration">Calibration</string>
@@ -22,5 +24,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="keyboard">Keyboard</string>
     <string name="set_keyboard">Select the active keyboard</string>
+    <string name="tpr">Touch recognizer</string>
+    <string name="set_tpr">Select the proper Touch recognizer module</string>
 
 </resources>

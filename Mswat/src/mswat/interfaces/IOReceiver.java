@@ -20,4 +20,5 @@ public interface  IOReceiver  {
 	 */
 	public abstract void onUpdateIO(int device, int type, int code, int value, int timestamp);
 		
+	public abstract void onTouchReceived(int type);
 }

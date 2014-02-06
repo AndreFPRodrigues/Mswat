@@ -2,6 +2,7 @@ package mswat.core.activityManager;
 
 import java.util.ArrayList;
 
+import mswat.core.CoreController;
 import mswat.core.feedback.FeedBack;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -24,8 +25,6 @@ public class NodeListController {
 
 	// Content list
 	ArrayList<Node> listCurrentNodes = new ArrayList<Node>();
-
-	
 
 	// Auto feedback variables
 	private boolean audioFeedback;
@@ -83,6 +82,7 @@ public class NodeListController {
 	 */
 	public String selectFocus() {
 		if (currentNavIndex != -1 && currentNavIndex < listCurrentNodes.size()) {
+			Log.d(LT, "Index:" + currentNavIndex);
 			Node n = listCurrentNodes.get(currentNavIndex);
 			currentNavIndex = -1;
 			if (n != null) {
@@ -108,10 +108,10 @@ public class NodeListController {
 							}
 						}
 					} else {
-						if (n.getAccessNode().isClickable())
+						if (n.getAccessNode().isClickable()) {
 							n.getAccessNode().performAction(
 									AccessibilityNodeInfo.ACTION_CLICK);
-						else {
+						} else {
 							if (n.getAccessNode().getParent() != null) {
 								n.getAccessNode()
 										.getParent()
@@ -124,11 +124,13 @@ public class NodeListController {
 				}
 				return n.getName();
 			}
-			
+
 		}
-		if (visualFeedback)
+		/* VISUAL FEED BACK CLEAR
+		if (visualFeedback){
 			FeedBack.clearHightlights();
-		
+		}*/
+
 		return "";
 
 	}
@@ -161,8 +163,9 @@ public class NodeListController {
 					}
 
 				}
-				if (visualFeedback)
-					FeedBack.clearHightlights();
+				if (visualFeedback){
+					//FeedBack.clearHightlights();
+				}
 
 				currentNavIndex = -1;
 			} else {
@@ -175,10 +178,9 @@ public class NodeListController {
 
 				// auto visual feedback
 				if (visualFeedback) {
-					FeedBack.hightlight(n.getBounds().top - 40,
-							n.getBounds().left, (float) 0.6, n.getBounds()
-									.width(), n.getBounds().height(),
-							Color.BLUE);
+					FeedBack.hightlight(n.getBounds().top /*- 40*/, n
+							.getBounds().left, (float) 0.6, n.getBounds()
+							.width(), n.getBounds().height(), Color.BLUE);
 				}
 			}
 
@@ -228,10 +230,9 @@ public class NodeListController {
 
 				// auto visual feedback
 				if (visualFeedback) {
-					FeedBack.hightlight(n.getBounds().top - 40,
-							n.getBounds().left, (float) 0.6, n.getBounds()
-									.width(), n.getBounds().height(),
-							Color.BLUE);
+					FeedBack.hightlight(n.getBounds().top /*- 40*/, n
+							.getBounds().left, (float) 0.6, n.getBounds()
+							.width(), n.getBounds().height(), Color.BLUE);
 				}
 			}
 
@@ -248,7 +249,7 @@ public class NodeListController {
 	 * @return String node description
 	 */
 	public String getNodeAt(double x, double y) {
-		hs.printViewItens(listCurrentNodes);
+		// hs.printViewItens(listCurrentNodes);
 		String result = "null";
 
 		int size = listCurrentNodes.size();
@@ -262,6 +263,141 @@ public class NodeListController {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Gets node name at given coords, null if none
+	 * 
+	 * @param x
+	 *            coord
+	 * @param y
+	 *            coord
+	 * @return String node description
+	 */
+	public int getNodeIndexAt(double x, double y) {
+		// hs.printViewItens(listCurrentNodes);
+
+		int size = listCurrentNodes.size();
+
+		for (int i = 0; i < size; i++) {
+			if (listCurrentNodes.get(i).isInside(x, y)) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	public int getNodeIndexByName(String name) {
+		int size = listCurrentNodes.size();
+
+		for (int i = size-1; i > -1; i--) {
+			if (listCurrentNodes.get(i).getName().equals(name)) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+	
+	public String getNodeNameByIndex(int index) {
+		return listCurrentNodes.get(index).getName();
+	}
+
+
+	/**
+	 * Return
+	 * 
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public String[] getNearNode(int x, int y, int radius) {
+		ArrayList<String> aux = new ArrayList<String>();
+		ArrayList<Integer> angles = new ArrayList<Integer>();
+
+		int size = listCurrentNodes.size();
+		boolean inseri = false;
+		float degree;
+
+		for (int i = 0; i < size; i++) {
+			Node n = listCurrentNodes.get(i);
+			if (!n.isInside(x, y) && n.distanceTo(x, y) < radius) {
+
+				String resultado = n.getName() + ","
+						+ CoreController.convertToMilX(n.getX() - x) + ","
+						+ CoreController.convertToMilY(n.getY() - y);
+
+				degree = getAngle(x, y, n.getX(), n.getY());
+
+				//Log.d(LT, "Graus" + degree + " nome:" + n.getName());
+
+				/*
+				 * if(angles.size()==0){ angles.add((int)degree);
+				 * aux.add(resultado); }
+				 */
+				for (int j = 0; j < angles.size(); j++) {
+					if (angles.get(j) > degree) {
+						angles.add(j, (int) degree);
+						aux.add(j, resultado);
+						inseri = true;
+						break;
+					}
+				}
+				if (!inseri) {
+					angles.add((int) degree);
+					aux.add(resultado);
+				}
+				inseri = false;
+				// degree=360-(degree+90);
+				/*
+				 * if(angles.size()<) for(int j=0;j<angles.size();j++){
+				 * if(angles.get(j)>degree && degree>0){ aux.add(j,resultado);
+				 * angles.add(j,(int) degree); }else
+				 * 
+				 * if(degree<0 && Math.abs(degree)<40){
+				 * angles.add(0,(int)degree); aux.add(0,resultado); }else {
+				 * angles.add((int)degree); aux.add(resultado);
+				 * 
+				 * }
+				 * 
+				 * }
+				 */
+
+			}
+
+		}
+
+		String[] result = new String[aux.size()];
+		aux.toArray(result);
+		return result;
+	}
+
+	public int getNearestNode(int x, int y, String node1, String node2) {
+		int i1 = getNodeIndexByName(node1);
+		int i2 = getNodeIndexByName(node2);
+		if (i1 > -1) {
+			if (i2 > -1) {
+				Node n1 = listCurrentNodes.get((i1));
+				Node n2 = listCurrentNodes.get((i2));
+				if (n1.distanceTo(x, y) > n2.distanceTo(x, y))
+					return -i2;
+				else
+					return i1;
+			} else
+				return i1;
+		}
+		return -66;
+	}
+
+	public float getAngle(int x, int y, int x1, int y1) {
+		float angle = (float) Math.toDegrees(Math.atan2(x1 - x, y1 - y));
+
+		if (angle < 0) {
+			angle += 360;
+		}
+
+		return angle;
 	}
 
 	/**
@@ -312,10 +448,39 @@ public class NodeListController {
 	 * @param index
 	 */
 	public void focusIndex(int index) {
-		if (index == -55){
+		if (index == -55) {
 			currentNavIndex = listCurrentNodes.size() - 1;
-		}
-		else
+		} else {
 			currentNavIndex = index;
+			if (visualFeedback) {
+				if (currentNavIndex < listCurrentNodes.size()
+						&& currentNavIndex > -1) { 
+					Node n = listCurrentNodes.get(currentNavIndex);
+					
+					FeedBack.hightlight(n.getBounds().top /*- 40*/, n
+							.getBounds().left, (float) 0.6, n.getBounds()
+							.width(), n.getBounds().height(), Color.BLUE);
+				}
+			}
+		}
 	}
+
+	public Node getNodeByIndex(int index) {
+		return listCurrentNodes.get(index);
+	}
+
+	public void highlightIndex(int index) {
+		currentNavIndex = index;
+		if (currentNavIndex < listCurrentNodes.size()
+				&& currentNavIndex > -1) { 
+			Node n = listCurrentNodes.get(currentNavIndex);
+			
+			FeedBack.addHighlight(n.getBounds().top /*- 40*/, n
+					.getBounds().left, (float) 0.6, n.getBounds()
+					.width(), n.getBounds().height(), Color.BLUE);
+		}
+		
+	}
+
+	
 }

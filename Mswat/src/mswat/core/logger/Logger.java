@@ -13,14 +13,15 @@ import android.util.Log;
 
 import mswat.core.CoreController;
 import mswat.interfaces.IOReceiver;
-import mswat.touch.TouchPatternRecognizer;
+import mswat.touch.TPRNexusS;
+import mswat.touch.TouchRecognizer;
 
 public class Logger extends BroadcastReceiver implements IOReceiver {
 
-	private final String LT = "Loggin";
+	private final static String LT = "Loggin";
 	private Context context;
 	private int device;
-	private TouchPatternRecognizer tpr;
+	private TouchRecognizer tpr; 
 
 	// Strings in queue to log
 	private ArrayList<String> toLog = new ArrayList<String>();
@@ -60,7 +61,7 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 				device = CoreController.monitorTouch();
 
 				// touch recogniser
-				tpr = new TouchPatternRecognizer();
+				tpr = CoreController.getActiveTPR();
 
 			}
 		}
@@ -87,7 +88,7 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 				int identifier = tpr.getIdentifier();
 
 				switch (result) {
-				case TouchPatternRecognizer.DOWN:
+				case TouchRecognizer.DOWN:
 					if (!logAtTouch)
 						s = "DOWN x:" + x + " y:" + y + " pressure:" + pressure
 								+ " touchSize:" + touchSize + " id:"
@@ -100,14 +101,14 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 					toLog.add(s);
 					 Log.d(LT, s);
 					break;
-				case TouchPatternRecognizer.MOVE:
+				case TouchRecognizer.MOVE:
 
 					s = "MOVE x:" + x + " y:" + y + " pressure:" + pressure
 							+ " touchSize:" + touchSize + " id:" + identifier;
 					toLog.add(s);
 					 Log.d(LT, s);
 					break;
-				case TouchPatternRecognizer.UP:
+				case TouchRecognizer.UP:
 					if (!logAtTouch) {
 						s = "UP x:" + x + " y:" + y + " pressure:" + pressure
 								+ " touchSize:" + touchSize + " id:"
@@ -125,7 +126,7 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 			}
 
 			if (toLog.size() > RECORD_THRESHOLD) {
-				registerToLog(toLog);
+				registerToLog(toLog, context.getFilesDir() + "/logTest.txt");
 				toLog = new ArrayList<String>();
 
 			}
@@ -139,9 +140,9 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 	 * 
 	 * @param message
 	 */
-	public void registerToLog(ArrayList<String> message) {
+	public void registerToLog(ArrayList<String> message, String filepath) {
 
-		LogToFile task = new LogToFile(context, message);
+		LogToFile task = new LogToFile(context, message, filepath);
 		task.execute();
 
 	}
@@ -154,7 +155,7 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 	 */
 	public boolean logToFile(String record) {
 		if (toLog.size() > RECORD_THRESHOLD) {
-			registerToLog(toLog);
+			registerToLog(toLog, context.getFilesDir() + "/logTest.txt" );
 
 			toLog = new ArrayList<String>();
 		}
@@ -169,21 +170,22 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 
 		private Context myContextRef;
 		private ArrayList<String> text;
+		private String filepath;
 
-		public LogToFile(Context context, ArrayList<String> message) {
+		public LogToFile(Context context, ArrayList<String> message, String filepath) {
 			this.myContextRef = context;
 			text = message;
+			this.filepath = filepath;
 		}
 
 		@Override
 		protected Void doInBackground(Void... params) {
-			File file = new File(myContextRef.getFilesDir() + "/logTest.txt");
+			File file = new File(filepath );
 			FileWriter fw;
 
 			try {
 				fw = new FileWriter(file, true);
 				for (int i = 0; i < text.size(); i++) {
-
 					fw.write(text.get(i) + "\n");
 				}
 				fw.close();
@@ -195,6 +197,12 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 			return null;
 
 		}
+	}
+
+	@Override
+	public void onTouchReceived(int type) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

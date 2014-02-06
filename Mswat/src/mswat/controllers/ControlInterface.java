@@ -42,5 +42,13 @@ public abstract class ControlInterface extends BroadcastReceiver{
  
 	}
 	
+	/**
+	 * Send focusIndex message
+	 */
+	protected void highlightIndex(int index){
+		CoreController.commandNav(CoreController.HIGHLIGHT_INDEX,index);
+ 
+	}
+	
 	
 }

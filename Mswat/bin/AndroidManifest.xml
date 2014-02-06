@@ -8,12 +8,15 @@
         android:minSdkVersion="14"
         android:targetSdkVersion="14" />
 
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.GET_TASKS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" >
-    </uses-permission>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:icon="@drawable/ic_launcher"
@@ -42,6 +45,22 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name="mswat.touch.TPRTab2"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="mswat_tpr" />
+                <action android:name="mswat_stop" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name="mswat.touch.TPRNexusS"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="mswat_tpr" />
+                <action android:name="mswat_stop" />
+            </intent-filter>
+        </receiver>
         <receiver
             android:name="mswat.examples.controllers.simpletouch.TouchController"
             android:enabled="true" >
@@ -86,13 +105,20 @@
                 <action android:name="mswat_stop" />
             </intent-filter>
         </receiver>
-        
-         <receiver
+        <receiver
             android:name="mswat.examples.controllers.autonav.AutoNavKeyboard"
             android:enabled="true" >
             <intent-filter>
                 <action android:name="mswat_init" />
-                <action android:name="monitor" />
+                <action android:name="mswat_stop" />
+                <action android:name="mswat_keyboard" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name="mswat.example.multiScreenReader.ScreenReader"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="mswat_init_screenReader" />
                 <action android:name="mswat_stop" />
             </intent-filter>
         </receiver>

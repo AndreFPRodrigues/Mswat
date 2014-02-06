@@ -57,4 +57,10 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 		return CoreController.registerIOReceiver(this);
 
 	}
+
+	@Override
+	public void onTouchReceived(int type) {
+		// TODO Auto-generated method stub
+		
+	}
 }

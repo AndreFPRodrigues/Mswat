@@ -49,6 +49,13 @@ public abstract class SwatKeyboard extends  BroadcastReceiver {
 	}
 	
 	/**
+	 * Backspace in current focused editBox
+	 */
+	public  void del(){
+		CoreController.callKeyboardWriteDirect(112);
+	}
+	
+	/**
 	 * Write string to the current focus
 	 * @param s
 	 */
@@ -72,6 +79,7 @@ public abstract class SwatKeyboard extends  BroadcastReceiver {
 		index[1]++;
 		
 		boolean cycled=false;
+		
 		if(index[1]>=keyboardLayout.get(index[0]).size())
 			cycled=true;
 		
@@ -126,11 +134,21 @@ public abstract class SwatKeyboard extends  BroadcastReceiver {
 		return cycled;
 	}
 	
-	public void resetSearch(){
+	public void resetSearchDown(){
 		index[1]=-1;
-		navUp();
+ 
+	}
+	public void resetSearchUp(){
+		index[1]=-1;
+		
 
 	}
+	public void resetSearch(){
+		index[1]=-1;
+		index[0]=-1;
+
+	}
+	
 	
 	public void resetColumnSearch(){
 		index[1]=-1;
@@ -163,6 +181,11 @@ public abstract class SwatKeyboard extends  BroadcastReceiver {
 	 * Start keyboard
 	 */
 	public abstract void start();
+
+	/**
+	 * Update UI
+	 */
+	public abstract void update() ;
 		
 	
 }

@@ -21,7 +21,13 @@
             android:key="log3"
             android:summary="@string/log3"
             android:title="@string/log" />
-
+        
+		<CheckBoxPreference
+            android:defaultValue="false"
+            android:key="wifi"
+            android:summary="@string/wifi"
+            android:title="@string/wifiTitle" />
+        
         <ListPreference
             android:defaultValue="@string/default_controller"
             android:entries="@array/mode"
@@ -36,6 +42,14 @@
             android:key="keyboard"
             android:summary="@string/set_keyboard"
             android:title="@string/keyboard" />
+        
+         <ListPreference
+            android:defaultValue="@string/default_controller"
+            android:entries="@array/tprMode"
+            android:entryValues="@array/tprValues"
+            android:key="tpr"
+            android:summary="@string/set_tpr"
+            android:title="@string/tpr" />
 
         <CheckBoxPreference
             android:defaultValue="false"

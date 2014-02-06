@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <RelativeLayout android:id="@+id/RelativeLayout01" android:layout_width="fill_parent" 
-android:layout_height="fill_parent"  xmlns:android="http://schemas.android.com/apk/res/android">
+android:layout_height="fill_parent" android:background="#FFFFFF" xmlns:android="http://schemas.android.com/apk/res/android">
 
 
 
@@ -59,6 +59,7 @@ android:layout_height="wrap_content" android:clickable="false">
 
 </TableLayout>
 
+<TextView android:text="" android:layout_alignParentTop="true" android:layout_height="wrap_content" android:id="@+id/TextViewText" android:layout_width="wrap_content" android:textSize="20sp" android:gravity="center_vertical|center_horizontal" android:textColor="#363636"></TextView>
 
 
 </RelativeLayout>

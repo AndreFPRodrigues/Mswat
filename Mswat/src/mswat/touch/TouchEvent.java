@@ -13,7 +13,9 @@ public class TouchEvent {
 	private int y;
 	private int msec;
 	private int pressure;
-	private int touchWidth;
+	private int touchMajor;
+	private int touchMinor;
+
 	private int identifier;
 	
 	public TouchEvent(int x, int y, int msec){
@@ -22,12 +24,19 @@ public class TouchEvent {
 		this.msec=msec;
 	}
 	
-	public TouchEvent(int x, int y, int msec, int pressure, int touchWidth, int identifier){
+	public TouchEvent(int x, int y, double identifier){
+		this.x=x;
+		this.y=y;
+		this.identifier=(int) identifier;
+	}
+	
+	public TouchEvent(int x, int y, int msec, int pressure, int touchMajor, int touchMinor, int identifier){
 		this.x=x;
 		this.y=y;
 		this.msec=msec;
 		this.pressure=pressure;
-		this.touchWidth = touchWidth;
+		this.touchMajor = touchMajor;
+		this.touchMinor= touchMinor;
 		this.identifier = identifier;
 	}
 	public int getX(){
@@ -42,8 +51,8 @@ public class TouchEvent {
 		return msec;
 	}
 
-	public int getTouchWidth() {
-		return touchWidth;
+	public int getTouchMajor() {
+		return touchMajor;
 	}
 
 
@@ -54,6 +63,11 @@ public class TouchEvent {
 	public int getPressure() {
 		return pressure;
 	}
+
+	public int getTouchMinor() {
+		return touchMinor;
+	}
+
 
 	
 }

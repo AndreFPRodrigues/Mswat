@@ -49,7 +49,7 @@ public class CalibrationActivity extends Activity {
 				CoreController.commandIO(CoreController.SETUP_TOUCH, position, false);
 				Intent i = new Intent(getBaseContext(), CalibrationScreen.class);
 				startActivity(i);
-				finish();
+				finish(); 
 			}
 
 		});
