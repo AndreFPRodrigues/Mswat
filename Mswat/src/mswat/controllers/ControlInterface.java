@@ -50,5 +50,12 @@ public abstract class ControlInterface extends BroadcastReceiver{
  
 	}
 	
+	protected void home(){
+		CoreController.home();
+	}
+	
+	protected void back(){
+		CoreController.back();
+	}
 	
 }

@@ -130,7 +130,7 @@ const char *device = NULL;
     } while(0)
 
 int idVirtualTouch = 0;
-static int startDevice(const char *touchdevice) {
+static int startDevice(const char *touchdevice, int protocol, int absX, int absY) {
 
 	struct uinput_user_dev uidev;
 	struct input_event ev;
@@ -149,8 +149,18 @@ static int startDevice(const char *touchdevice) {
 	uidev.id.vendor = 0x0;
 	uidev.id.product = 0x0;
 	uidev.id.version = 0;
-	uidev.absmax[ABS_MT_POSITION_X] = 480;
-	uidev.absmax[ABS_MT_POSITION_Y] = 800;
+	//uidev.absmax[ABS_MT_POSITION_X] = 480;
+	//uidev.absmax[ABS_MT_POSITION_Y] = 800;
+	uidev.absmax[ABS_MT_POSITION_X] = absX;
+	uidev.absmax[ABS_MT_POSITION_Y] = absY;
+	uidev.absmax[ABS_MT_TOUCH_MAJOR] = 64;
+	uidev.absmax[ABS_MT_WIDTH_MAJOR] = 64;
+	uidev.absmax[ABS_MT_PRESSURE] = 64;
+
+	if(protocol==1){
+		uidev.absmax[ABS_MT_TRACKING_ID] = 65535;
+		uidev.absmax[ABS_MT_SLOT] = 9;
+	}
 
 	if (write(fd, &uidev, sizeof(uidev)) < 0) {
 		die("error: write");
@@ -161,9 +171,23 @@ static int startDevice(const char *touchdevice) {
 	ioctl(fd, UI_SET_ABSBIT, ABS_MT_POSITION_X);
 	ioctl(fd, UI_SET_ABSBIT, ABS_MT_POSITION_Y);
 	ioctl(fd, UI_SET_ABSBIT, ABS_MT_PRESSURE);
+	ioctl(fd, UI_SET_ABSBIT, ABS_MT_TOUCH_MINOR);
 	ioctl(fd, UI_SET_ABSBIT, ABS_MT_TOUCH_MAJOR);
+
+
+
+	ioctl(fd, UI_SET_ABSBIT, ABS_MT_ORIENTATION);
+	ioctl(fd, UI_SET_ABSBIT, BTN_TOOL_FINGER);
+	ioctl(fd, UI_SET_ABSBIT, BTN_TOOL_DOUBLETAP);
+	ioctl(fd, UI_SET_ABSBIT, BTN_TOOL_TRIPLETAP);
+	ioctl(fd, UI_SET_ABSBIT, BTN_TOOL_QUADTAP);
+
+
 	ioctl(fd, UI_SET_ABSBIT, ABS_MT_TRACKING_ID);
+	ioctl(fd, UI_SET_ABSBIT, ABS_MT_SLOT);
+
 	ioctl(fd, UI_SET_KEYBIT, BTN_TOUCH);
+
 
 
 	if (ioctl(fd, UI_DEV_CREATE, 0) < 0) {
@@ -406,11 +430,11 @@ jint Java_mswat_core_ioManager_Events_getCode2(JNIEnv* env, jobject thiz) {
 }
 
 jint Java_mswat_core_ioManager_Events_createVirtualDevice(
-		JNIEnv* env, jobject thiz, jstring touchDevice) {
+		JNIEnv* env, jobject thiz, jstring touchDevice, jint protocol, jint absX, jint absY) {
 	//return 0;
 	const char *nativeString = (*env)->GetStringUTFChars(env, touchDevice, 0);
 
-	return startDevice(nativeString);
+	return startDevice(nativeString, protocol, absX, absY);
 }
 
 jint Java_mswat_core_ioManager_Events_getValue(JNIEnv* env, jobject thiz) {

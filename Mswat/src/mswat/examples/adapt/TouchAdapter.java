@@ -11,9 +11,11 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 	private final String LT = "VirtualDrive";
 	private int deviceIndex;
 
+
+
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		if (intent.getAction().equals("mswat_init1")) {
+		if (intent.getAction().equals("mswat_init")) {
 
 			Log.d(LT, "Virtual touch initialised");
 
@@ -28,12 +30,16 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 					true);
 
 			// create virtual touch drive
-			CoreController.commandIO(CoreController.CREATE_VIRTUAL_TOUCH, -1,
+			// Second argument defines multi touch protocol
+			// 0 - protocol a
+			// 1 - protocol b
+			CoreController.commandIO(CoreController.CREATE_VIRTUAL_TOUCH, 1,
 					false);
 
 		}
 	}
-
+	
+	int lastY=0;
 	@Override
 	public void onUpdateIO(int device, int type, int code, int value,
 			int timestamp) {
@@ -41,14 +47,20 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 		if (device == deviceIndex) {
 
 			// adapting to the real screen coords
-			if (code == 53)
+			if (code == 53){
 				value = CoreController.xToScreenCoord(value);
+			}else
 			if (code == 54) {
 				value = CoreController.yToScreenCoord(value);
-			}
+			} 
+	
 			
-			//adapt values before injecting
+
+			//Log.d(LT, "t:" + type + " c:" + code + " v:" + value);
 			CoreController.injectToVirtual(type, code, value);
+
+			
+				
 		}
 	}
 
@@ -58,9 +70,12 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 
 	}
 
+	/**
+	 * Wifi touch receiver
+	 */
 	@Override
 	public void onTouchReceived(int type) {
 		// TODO Auto-generated method stub
-		
+
 	}
 }

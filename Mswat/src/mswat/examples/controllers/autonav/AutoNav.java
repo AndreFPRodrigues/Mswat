@@ -31,15 +31,15 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 	// if auto nav has been activated
 	private static boolean autoNavState = false;
-
+ 
 	private int time = 3000;
 	private boolean navigate = true;
 	private static NavTree navTree;
-	private final int NAV_TREE_ROW = 0;
-	private final int NAV_TREE_LINE = 1;
-	private int navMode = NAV_TREE_LINE;
+	private static final int NAV_TREE_ROW = 0;
+	private static final int NAV_TREE_LINE = 1;
+	private static int navMode = NAV_TREE_LINE;
 
-	private boolean updateNavTree = false;
+	private static boolean updateNavTree = false;
 	static boolean handlingCall = false;
 	private static boolean answeringCall = false;
 	private static boolean readingNote = false;
@@ -52,6 +52,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 	private String latestNote;
 	private ArrayList<String> toRead = new ArrayList<String>();
+	private static boolean autonav=false;
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -107,8 +108,10 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 				handlingCall = false;
 			} else if (intent.getExtras().getString("state").equals("IDLE")) {
 				answeringCall = false;
-				handlingCall = false;
+				handlingCall = false; 
 				CoreController.home();
+				if(!autonav)
+					autoNav();
 			}
 			c = context;
 
@@ -117,6 +120,9 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 			if (autoNavState && intent.getAction().equals("mswat_keyboard")) {
 				keyboardState = intent.getBooleanExtra("status", false);
+				if (!keyboardState && !autonav){
+					autoNav();
+				}
 				Log.d(LT, "KEYBOARD ENABLE " + keyboardState);
 
 			}
@@ -191,6 +197,12 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 	}
 
 	private void handleTouch(int type) {
+		// if keyboard is enabled ignores IO events
+		if (keyboardState) {
+			Log.d(LT, "return ;");
+
+			return;
+		}
 		switch (type) {
 		case TouchRecognizer.LONGPRESS:
 			Log.d(LT, "LongPress");
@@ -200,6 +212,8 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 			navigate = false;
 			break;
 		}
+		Log.d(LT, "Handling touch");
+
 		if (handlingCall && !answeringCall) {
 
 			navTree.pause = true;
@@ -222,6 +236,9 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 			// answeringCall=false;
 			updateNavTree = true;
 			navTree.unpause = true;
+			//testing pause
+			if(!autonav)
+				autoNav();
 			if (toRead.size() > 0) {
 				onNotification("Notificações");
 				for (int i = 0; i < toRead.size(); i++) {
@@ -233,7 +250,9 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 			// either change navigation mode or select current focused
 			// node
 			if (navMode == NAV_TREE_LINE) {
-				navTree.nextNode();
+				Log.d(LT, "Handling touch nav tree line" +navTree.nextNode().getName());
+
+				
 
 				if (navTree.lineSize() == 1
 						|| (navTree.getCurrentNode() != null && navTree
@@ -265,6 +284,8 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 				navTree.resetColumnIndex();
 
 			} else {
+				Log.d(LT, "Handling touch nav tree line 2");
+
 				navMode = NAV_TREE_LINE;
 
 				if (navTree.getCurrentNode() != null
@@ -275,6 +296,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 					updateNavTree = true;
 					CoreController.home();
 				} else {
+					Log.d(LT, "Handling touch focus select");
 
 					focusIndex(navTree.getCurrentIndex());
 					selectCurrent();
@@ -301,18 +323,26 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 	private void autoNav() {
 		Thread auto = new Thread(new Runnable() {
 			public void run() {
-
+				autonav=true;
+				updateNavTree = true;  
+				Log.d(LT, "INIT AUTONAV Thread");
 				Node n;
 				CoreController.home();
-
+				
+				outer:
 				while (navigate) {
 					do {
 						// TODO maybe handler
 						SystemClock.sleep(time);
-						// Log.d(LT, "Pause" + navTree.pause + "  Unpause:"
-						// +navTree.unpause + " keyboard:" + keyboardState);
-					} while ((navTree.pause && !navTree.unpause)
-							|| keyboardState || readingNote);
+						
+						if((navTree.pause && !navTree.unpause) || keyboardState){
+							
+							Log.d(LT, "BOPN"); 
+							autonav=false;
+							break outer;
+						}
+					
+					} while ( keyboardState || readingNote);
 					if (navTree.available()) {
 
 						switch (navMode) {
@@ -377,6 +407,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 
 	@Override
 	public void onTouchReceived(int type) {
+		Log.d(LT, "Received Touch");
 		handleTouch(type);
 	}
 

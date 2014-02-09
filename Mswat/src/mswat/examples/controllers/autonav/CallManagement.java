@@ -1,13 +1,13 @@
 package mswat.examples.controllers.autonav;
 
-
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.util.Log;
 import android.view.KeyEvent;
-
+ 
 public class CallManagement {
-	
+ 
 	public static void answer(Context context) {
 		Log.d("easyphone", "InSecond Method Ans Call");
 		// froyo and beyond trigger on buttonUp instead of buttonDown
@@ -20,6 +20,10 @@ public class CallManagement {
 		headSetUnPluggedintent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
 		headSetUnPluggedintent.putExtra("state", 0);
 		headSetUnPluggedintent.putExtra("name", "Headset");
+
+		AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+		audioManager.setMode(AudioManager.MODE_IN_CALL);
+		audioManager.setSpeakerphoneOn(true);
 		try {
 			context.sendOrderedBroadcast(headSetUnPluggedintent, null);
 		} catch (Exception e) {
@@ -27,6 +31,5 @@ public class CallManagement {
 			e.printStackTrace();
 		}
 	}
-
 
 }

@@ -50,6 +50,9 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	public void createAutoNavKeyboard() {
 		ArrayList<ArrayList<String>> table = new ArrayList<ArrayList<String>>();
 		ArrayList<String> row = new ArrayList<String>();
+		row.add("Fechar");
+		table.add(row);
+		row = new ArrayList<String>();
 		for (int i = 0; i < 26; i++) {
 			char c = (char) (i + 'a');
 
@@ -67,7 +70,6 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 		row.add("Espaço");
 		row.add("Ponto");
 		row.add("Apagar");
-		row.add("Fechar");
 		table.add(row);
 
 		setKeyboard(table);
@@ -146,7 +148,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	 * Show keyboard layout
 	 */
 	public void writeToTextBox(final Context c, final String text) {
-
+		Log.d(LT, "TEXT: " + text);
 		Handler hightligherHandler = new Handler();
 		hightligherHandler.post(new Runnable() {
 			public void run() {
@@ -172,7 +174,15 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	@Override
 	public void hide() {
 		if (overlay != null && navigate) {
+			Log.d(LT, "HIDEN keyboard");
+			/*if(editText.length()==0){ 
+				writeChar(' ');
+				SystemClock.sleep(200); 
+			}*/ 
+			
 			navigate = false;
+			nodeText=null;
+			lastWord=new StringBuilder();
 			windowManager.removeView(overlay);
 			overlay.removeAllViews();
 			overlay = null;
@@ -202,7 +212,6 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 		// Create keyboard overlay
 		show(c);
 
-		Log.d(LT, "STARTED KEYBOARD");
 
 		// start monitoring touch
 		int deviceIndex = CoreController.monitorTouch();
@@ -229,7 +238,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 				&& intent.getExtras().get("keyboard").equals("AutoNav")) {
 
 			c = context;
-
+			
 			createAutoNavKeyboard();
 
 		} else if (intent.getAction().equals("mswat_keyboard")
@@ -295,6 +304,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 						direction = DOWN;
 
 					} else {
+						Log.d(LT, "ENTREI NO TOUCH FECHAR");
 						hide();
 					}
 				} else {
@@ -313,8 +323,10 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 	@Override
 	public void update() {
-		if (nodeText != null)
+		if (nodeText != null){
+			Log.d(LT, "interface update");
 			writeToTextBox(c, editText.toString());
+		}
 
 	}
 

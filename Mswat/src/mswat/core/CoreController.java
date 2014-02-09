@@ -305,7 +305,7 @@ public class CoreController {
 				case CREATE_VIRTUAL_TOUCH:
 					Log.d(LT, "Create virtual drive ");
 
-					monitor.createVirtualTouchDrive();
+					monitor.createVirtualTouchDrive(index);
 					break;
 				case SETUP_TOUCH:
 					hs.storeTouchIndex(index);

@@ -198,12 +198,12 @@ public class FeedBack implements OnInitListener {
 	/**
 	 * Clear highlights
 	 */
-	public static void clearHightlights() {
+	public static void clearHightlights() { 
 
-		if (overlay != null) {
+		if (overlay != null && overlay.getHeight()!=0 ) {
 			windowManager.removeView(overlay);
 			overlay.removeAllViews();
-			overlay = null;
+			overlay = null; 
 			stop = true;
 		}
 	}

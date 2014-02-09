@@ -197,8 +197,9 @@ public class Monitor {
 								int code = idev.getSuccessfulPollingCode();
 								int value = idev.getSuccessfulPollingValue();
 								int timestamp = idev.getTimeStamp();
-								//Log.d(LT, type + " " + code + " " + value + " "
-									//	+ timestamp);
+								// Log.d(LT, type + " " + code + " " + value +
+								// " "
+								// + timestamp);
 								CoreController.updateIOReceivers(index, type,
 										code, value, timestamp);
 
@@ -295,14 +296,23 @@ public class Monitor {
 	 * Setup index for touchscreen device
 	 */
 	public void setupTouch(int index) {
-		touchIndex = index;
+		touchIndex = index; 
 	}
 
 	/**
 	 * Creates a virtual touch drive
 	 */
-	public void createVirtualTouchDrive() {
-		dev.get(0).createVirtualDrive(dev.get(touchIndex).getName());
+	public void createVirtualTouchDrive(int protocol) {
+		/*Log.d(LT, 
+				"Virtual drive created "
+						+ dev.get(0).createVirtualDrive(
+								dev.get(touchIndex).getName(), protocol,
+								(int) CoreController.M_WIDTH,
+								(int) CoreController.M_HEIGHT));*/
+		dev.get(0).createVirtualDrive(
+				dev.get(touchIndex).getName()	, protocol,
+				(int) CoreController.M_WIDTH,
+				(int) CoreController.M_HEIGHT);
 
 		virtualDriveEnable = true;
 	}

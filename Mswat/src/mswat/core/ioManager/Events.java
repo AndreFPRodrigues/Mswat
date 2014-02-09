@@ -142,14 +142,14 @@ public class Events {
 
 		}
 		
-		public int  createVirtualDrive(String touch) {
+		public int  createVirtualDrive(String touch, int protocol, int absX, int absY) {
 			if (Shell.isSuAvailable()) {
 				Shell.runCommand("chmod 666 " + "/dev/uinput");
 			}
 
-			return createVirtualDevice(touch);
+			return createVirtualDevice(touch, protocol, absX, absY);
 
-		}
+		} 
 
 	}
 
@@ -205,7 +205,7 @@ public class Events {
 
 	private native static int getTime();
 
-	private native static int createVirtualDevice(String touch2);
+	private native static int createVirtualDevice(String touch2, int protocol, int absX, int absY);
 
 	private native static int getValue();
 
