@@ -1,4 +1,4 @@
-package virtualDrive;
+package mswat.virtualDrive;
 
 import mswat.core.CoreController;
 import android.content.BroadcastReceiver;
