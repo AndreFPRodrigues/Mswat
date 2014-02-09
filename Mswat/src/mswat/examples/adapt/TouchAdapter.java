@@ -54,9 +54,9 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 				value = CoreController.yToScreenCoord(value);
 			} 
 	
-			
+			 
 
-			//Log.d(LT, "t:" + type + " c:" + code + " v:" + value);
+			Log.d(LT, "t:" + type + " c:" + code + " v:" + value);
 			CoreController.injectToVirtual(type, code, value);
 
 			

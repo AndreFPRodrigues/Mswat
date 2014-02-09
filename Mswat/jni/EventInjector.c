@@ -133,7 +133,6 @@ int idVirtualTouch = 0;
 static int startDevice(const char *touchdevice, int protocol, int absX, int absY) {
 
 	struct uinput_user_dev uidev;
-	struct input_event ev;
 	int fd;
 
 	fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
@@ -145,26 +144,7 @@ static int startDevice(const char *touchdevice, int protocol, int absX, int absY
 	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "%s",touchdevice);
 
 
-	uidev.id.bustype = 0;
-	uidev.id.vendor = 0x0;
-	uidev.id.product = 0x0;
-	uidev.id.version = 0;
-	//uidev.absmax[ABS_MT_POSITION_X] = 480;
-	//uidev.absmax[ABS_MT_POSITION_Y] = 800;
-	uidev.absmax[ABS_MT_POSITION_X] = absX;
-	uidev.absmax[ABS_MT_POSITION_Y] = absY;
-	uidev.absmax[ABS_MT_TOUCH_MAJOR] = 64;
-	uidev.absmax[ABS_MT_WIDTH_MAJOR] = 64;
-	uidev.absmax[ABS_MT_PRESSURE] = 64;
 
-	if(protocol==1){
-		uidev.absmax[ABS_MT_TRACKING_ID] = 65535;
-		uidev.absmax[ABS_MT_SLOT] = 9;
-	}
-
-	if (write(fd, &uidev, sizeof(uidev)) < 0) {
-		die("error: write");
-	}
 	ioctl(fd, UI_SET_EVBIT, EV_ABS);
 
 
@@ -188,7 +168,27 @@ static int startDevice(const char *touchdevice, int protocol, int absX, int absY
 
 	ioctl(fd, UI_SET_KEYBIT, BTN_TOUCH);
 
+	uidev.id.bustype = 0;
+	uidev.id.vendor = 0x0;
+	uidev.id.product = 0x0;
+	uidev.id.version = 0;
+	//uidev.absmax[ABS_MT_POSITION_X] = 480;
+	//uidev.absmax[ABS_MT_POSITION_Y] = 800;
+	uidev.absmax[ABS_MT_POSITION_X] = absX;
+	uidev.absmax[ABS_MT_POSITION_Y] = absY;
 
+	uidev.absmax[ABS_MT_TOUCH_MAJOR] = 64;
+	uidev.absmax[ABS_MT_WIDTH_MAJOR] = 64;
+	uidev.absmax[ABS_MT_PRESSURE] = 64;
+
+	if(protocol==1){
+		uidev.absmax[ABS_MT_TRACKING_ID] = 65535;
+		uidev.absmax[ABS_MT_SLOT] = 9;
+	}
+
+	if (write(fd, &uidev, sizeof(uidev)) < 0) {
+		die("error: write");
+	}
 
 	if (ioctl(fd, UI_DEV_CREATE, 0) < 0) {
 		die("error: ioctl");

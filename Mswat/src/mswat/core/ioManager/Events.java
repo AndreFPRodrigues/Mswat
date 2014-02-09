@@ -149,8 +149,8 @@ public class Events {
 
 			return createVirtualDevice(touch, protocol, absX, absY);
 
-		} 
-
+		}  
+ 
 	}
 
 	

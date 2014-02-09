@@ -303,17 +303,15 @@ public class Monitor {
 	 * Creates a virtual touch drive
 	 */
 	public void createVirtualTouchDrive(int protocol) {
-		/*Log.d(LT, 
+		Log.d(LT, "TEINTI");
+		Log.d(LT, 
 				"Virtual drive created "
 						+ dev.get(0).createVirtualDrive(
 								dev.get(touchIndex).getName(), protocol,
 								(int) CoreController.M_WIDTH,
-								(int) CoreController.M_HEIGHT));*/
-		dev.get(0).createVirtualDrive(
-				dev.get(touchIndex).getName()	, protocol,
-				(int) CoreController.M_WIDTH,
-				(int) CoreController.M_HEIGHT);
-
+								(int) CoreController.M_HEIGHT));
+	
+ 
 		virtualDriveEnable = true;
 	}
 
