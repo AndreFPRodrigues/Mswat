@@ -177,7 +177,6 @@ public class Events {
 			m_Devs.get(i).Open(true);
 
 		}
-		Log.d("coc", "CONNECTED612" + m_Devs.toString());
 
 		return m_Devs;
 	}

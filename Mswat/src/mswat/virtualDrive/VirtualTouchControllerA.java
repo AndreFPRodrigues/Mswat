@@ -3,7 +3,7 @@ package mswat.virtualDrive;
 import mswat.core.CoreController;
 import android.content.BroadcastReceiver;
 
-public  abstract class VirtualTouchControllerA extends BroadcastReceiver  {
+public  abstract class VirtualTouchControllerA   {
 	final int EV_ABS = 0x03,ABS_MT_POSITION_X =53, ABS_MT_POSITION_Y=54, SYN_MT_REPORT=2, SYN_REPORT=0;// 330
 	
 	
@@ -12,7 +12,7 @@ public  abstract class VirtualTouchControllerA extends BroadcastReceiver  {
 		CoreController.injectToVirtual(EV_ABS, ABS_MT_POSITION_Y, y);
 		CoreController.injectToVirtual(0, SYN_REPORT, 0);
 
-	}
+	} 
 	
 	protected void injectSlide(int x , int y, int x1 , int y1){
 		int addX=(x1-x)/5;

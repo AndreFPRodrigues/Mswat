@@ -99,6 +99,14 @@
             </intent-filter>
         </receiver>
         <receiver
+            android:name="mswat.vodafone.teste"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="mswat_init" />
+                <action android:name="mswat_stop" />
+            </intent-filter>
+        </receiver>
+        <receiver
             android:name="mswat.examples.notificationReceiver.TestNotification"
             android:enabled="true" >
             <intent-filter>

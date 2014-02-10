@@ -332,6 +332,10 @@ public class CoreController {
 	public static void injectToVirtual(int t, int c, int v) {
 		monitor.injectToVirtual(t, c, v);
 	}
+	
+	public static void injectToTouch(int t, int c, int v) {
+		monitor.injectToTouch(t, c, v);
+	}
 
 	/**
 	 * Inject event into the device on the position index

@@ -111,6 +111,18 @@ public class Monitor {
 			Events.sendVirtual(type, code, value);
 		}
 	}
+	
+	/**
+	 * Inject events into the  touch device
+	 * 
+	 * @requires createVirtualTouchDrive() before
+	 * @param type
+	 * @param code
+	 * @param value
+	 */
+	public void injectToTouch(int type, int code, int value) {
+		dev.get(touchIndex).send(touchIndex, type, code, value);
+	}
 
 	public void stopCalibration() {
 		calibrating = false;

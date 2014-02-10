@@ -15,7 +15,7 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		if (intent.getAction().equals("mswat_init1")) {
+		if (intent.getAction().equals("mswat_init")) {
 
 			Log.d(LT, "Virtual touch initialised");
 
@@ -23,7 +23,7 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 			registerIOReceiver(); 
 
 			// starts monitoring touchscreen
-			deviceIndex = CoreController.monitorTouch();
+			deviceIndex = CoreController.monitorTouch(); 
 
 			// blocks the touch screen
 			CoreController.commandIO(CoreController.SET_BLOCK, deviceIndex,
@@ -33,7 +33,7 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 			// Second argument defines multi touch protocol
 			// 0 - protocol a
 			// 1 - protocol b
-			CoreController.commandIO(CoreController.CREATE_VIRTUAL_TOUCH, 1,
+			CoreController.commandIO(CoreController.CREATE_VIRTUAL_TOUCH, 0,
 					false);
 
 		}
