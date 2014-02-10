@@ -100,9 +100,13 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 					switch (navMode) {
 					case NAV_TREE_LINE:
-						if (direction == DOWN)
-							navDown();
-						else
+						if (direction == DOWN) {
+							if (navDown()) {
+								navigate = false;
+								break;
+							}
+
+						} else
 							navUp();
 						CoreController.textToSpeech(getCurrent() + " Linha");
 						break;
@@ -173,16 +177,16 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	 */
 	@Override
 	public void hide() {
-		if (overlay != null && navigate) {
+		if (overlay != null && navigate) { 
 			Log.d(LT, "HIDEN keyboard");
-			/*if(editText.length()==0){ 
-				writeChar(' ');
-				SystemClock.sleep(200); 
-			}*/ 
-			
+			/*
+			 * if(editText.length()==0){ writeChar(' '); SystemClock.sleep(200);
+			 * }
+			 */
+
 			navigate = false;
-			nodeText=null;
-			lastWord=new StringBuilder();
+			nodeText = null;
+			lastWord = new StringBuilder();
 			windowManager.removeView(overlay);
 			overlay.removeAllViews();
 			overlay = null;
@@ -212,7 +216,6 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 		// Create keyboard overlay
 		show(c);
 
-
 		// start monitoring touch
 		int deviceIndex = CoreController.monitorTouch();
 		keyIndex = registerIOReceiver();
@@ -238,7 +241,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 				&& intent.getExtras().get("keyboard").equals("AutoNav")) {
 
 			c = context;
-			
+
 			createAutoNavKeyboard();
 
 		} else if (intent.getAction().equals("mswat_keyboard")
@@ -261,14 +264,20 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 	public void onUpdateIO(int device, int type, int code, int value,
 			int timestamp) {
 		int touchtype;
-		if ((touchtype=tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
+		if ((touchtype = tpr.identifyOnRelease(type, code, value, timestamp)) != -1) {
 			handleTouch(touchtype);
 		}
 	}
 
 	private void handleTouch(int type) {
-		
+
 		Log.d(LT, "TOUCHED KEYBOARD");
+
+		if (!navigate) {
+			autoNav();
+			return;
+		}
+
 		// either change navigation mode or select current focused
 		// node
 		if (navMode == NAV_TREE_LINE) {
@@ -323,7 +332,7 @@ public class AutoNavKeyboard extends SwatKeyboard implements IOReceiver {
 
 	@Override
 	public void update() {
-		if (nodeText != null){
+		if (nodeText != null) {
 			Log.d(LT, "interface update");
 			writeToTextBox(c, editText.toString());
 		}

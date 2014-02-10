@@ -58,4 +58,9 @@ public abstract class ControlInterface extends BroadcastReceiver{
 		CoreController.back();
 	}
 	
+	protected void clickNode(String description){
+		focusIndex(CoreController.getNodeIndexByName(description));
+		selectCurrent();
+	}
+	
 }

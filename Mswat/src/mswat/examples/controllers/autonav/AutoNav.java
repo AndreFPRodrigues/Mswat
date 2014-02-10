@@ -250,7 +250,7 @@ public class AutoNav extends ControlInterface implements IOReceiver,
 			// either change navigation mode or select current focused
 			// node
 			if (navMode == NAV_TREE_LINE) {
-				Log.d(LT, "Handling touch nav tree line" +navTree.nextNode().getName());
+				//Log.d(LT, "Handling touch nav tree line" +navTree.nextNode().getName());
 
 				
 
