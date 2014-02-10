@@ -15,7 +15,7 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		if (intent.getAction().equals("mswat_init")) {
+		if (intent.getAction().equals("mswat_init1")) {
 
 			Log.d(LT, "Virtual touch initialised");
 

@@ -121,6 +121,7 @@ public class Monitor {
 	 * @param value
 	 */
 	public void injectToTouch(int type, int code, int value) {
+		Log.d(LT, "touch index:" + touchIndex);
 		dev.get(touchIndex).send(touchIndex, type, code, value);
 	}
 
@@ -209,9 +210,9 @@ public class Monitor {
 								int code = idev.getSuccessfulPollingCode();
 								int value = idev.getSuccessfulPollingValue();
 								int timestamp = idev.getTimeStamp();
-								// Log.d(LT, type + " " + code + " " + value +
-								// " "
-								// + timestamp);
+								 Log.d(LT, type + " " + code + " " + value +
+								 " "
+								 + timestamp);
 								CoreController.updateIOReceivers(index, type,
 										code, value, timestamp);
 
