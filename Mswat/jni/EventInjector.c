@@ -325,7 +325,7 @@ jint Java_mswat_core_ioManager_Events_sendVirtualEvent(JNIEnv* env,
 			die("error");
 }
 
-jint Java__mswat_core_ioManager_Events_intSendEvent(JNIEnv* env, jobject thiz,
+jint Java_mswat_core_ioManager_Events_intSendEvent(JNIEnv* env, jobject thiz,
 		jint index, uint16_t type, uint16_t code, int32_t value) {
 	int fd = 0;
 	if (index == -2)
