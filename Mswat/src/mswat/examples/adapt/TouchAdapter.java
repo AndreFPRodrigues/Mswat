@@ -33,7 +33,7 @@ public class TouchAdapter extends BroadcastReceiver implements IOReceiver {
 			// Second argument defines multi touch protocol
 			// 0 - protocol a
 			// 1 - protocol b
-			CoreController.commandIO(CoreController.CREATE_VIRTUAL_TOUCH, 0,
+			CoreController.commandIO(CoreController.CREATE_VIRTUAL_TOUCH, 1,
 					false);
 
 		}
