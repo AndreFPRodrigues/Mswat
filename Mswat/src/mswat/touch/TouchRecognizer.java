@@ -1,34 +1,42 @@
 package mswat.touch;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Stack;
 
 import android.content.BroadcastReceiver;
 
 public abstract class TouchRecognizer extends BroadcastReceiver {
 	
-	// Touch types on release
-		public final static int TOUCHED = 4;
-		public final static int SLIDE = 5;
-		public final static int LONGPRESS = 6;
+		// Touch types on release
+		public final static int TOUCHED = 5;
+		public final static int SLIDE = 6;
+		public final static int LONGPRESS = 7;
 
 		// Touch types on change
 		public final static int DOWN = 0;
 		public final static int MOVE = 1;
 		public final static int UP = 2;
 		public final static int DOUBLE_CLICK = 3;
+		public final static int SPLIT_TAP = 4;
 
 		// input types
-		protected static final int POSITION_X = 53;
-		protected static final int POSITION_Y = 54;
-		protected static final int PRESSURE = 58;
-		protected static final int TOUCH_MAJOR = 48;
-		protected static final int TOUCH_MINOR = 49;
-		protected static final int TRACKING_ID = 57;
+		protected static final int ABS_MT_POSITION_X = 53;
+		protected static final int ABS_MT_POSITION_Y = 54;
+		protected static final int ABS_MT_PRESSURE = 58;
+		protected static final int ABS_MT_TOUCH_MAJOR = 48;
+		protected static final int ABS_MT_TOUCH_MINOR = 49;
+		protected static final int ABS_MT_TRACKING_ID = 57;
 		protected static final int SYN_MT_REPORT = 2;
 		protected static final int SYN_REPORT = 0;
-		protected static final int MT_SLOT = 47;
+		protected static final int ABS_MT_SLOT = 47;
 
 		// identifier variables
+		HashMap<Integer, Integer> xs = new HashMap<Integer, Integer>();
+		HashMap<Integer, Integer> ys = new HashMap<Integer, Integer>();
+		HashMap<Integer, Integer> ids = new HashMap<Integer, Integer>();
+
+		HashMap<Integer, TouchEvent> tou = new HashMap<Integer, TouchEvent>();
 		protected int lastX;
 		protected int lastY;
 		protected int slideXorigin;
@@ -117,9 +125,9 @@ public abstract class TouchRecognizer extends BroadcastReceiver {
 		 */
 		protected boolean checkDistance(TouchEvent p, TouchEvent te) {
 
-			if (Math.pow((p.getX() - te.getX()), 2) > 25)
+			if (Math.pow((p.getX() - te.getX()), 2) > 5)
 				return true;
-			if (Math.pow((p.getY() - te.getY()), 2) > 25)
+			if (Math.pow((p.getY() - te.getY()), 2) > 5)
 				return true;
 			return false;
 		}
@@ -138,4 +146,11 @@ public abstract class TouchRecognizer extends BroadcastReceiver {
 			}
 			return false;
 		}
+		
+		
+		public TouchEvent getlastTouch() {
+
+			return null;
+		}
+	
 }

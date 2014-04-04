@@ -71,16 +71,16 @@ public class TPRNexusS extends TouchRecognizer {
 	@Override
 	public int identifyOnRelease(int type, int code, int value, int timestamp) {
 		// Log.d(LT,"t:"+ type+ " c:" + code + " v:"+ value);
-		if(code==TRACKING_ID){
+		if(code==ABS_MT_TRACKING_ID){
 			identifier=value;
 		}else
-		if (code == PRESSURE)
+		if (code == ABS_MT_PRESSURE)
 			pressure = value;
-		else if (code == TOUCH_MAJOR)
+		else if (code == ABS_MT_TOUCH_MAJOR)
 			touchMajor = value;
-		if (code == POSITION_X)
+		if (code == ABS_MT_POSITION_X)
 			lastX = value;
-		else if (code == POSITION_Y)
+		else if (code == ABS_MT_POSITION_Y)
 			lastY = value;
 		else if (code == SYN_MT_REPORT && value == 0) {
 			TouchEvent p = new TouchEvent(lastX, lastY, timestamp, pressure, touchMajor,-1,identifier );
@@ -111,19 +111,19 @@ public class TPRNexusS extends TouchRecognizer {
 	public int identifyOnChange(int type, int code, int value , int timestamp){
 		
 		switch(code){
-			case POSITION_X:
+			case ABS_MT_POSITION_X:
 				lastX=value;
 				break;
-			case POSITION_Y:
+			case ABS_MT_POSITION_Y:
 				lastY=value;
 				break;
-			case PRESSURE:
+			case ABS_MT_PRESSURE:
 				pressure=value;
 				break;
-			case TOUCH_MAJOR:
+			case ABS_MT_TOUCH_MAJOR:
 				touchMajor=value;
 				break;
-			case TRACKING_ID:
+			case ABS_MT_TRACKING_ID:
 				identifier=value;			
 				break;
 			case SYN_MT_REPORT:

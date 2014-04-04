@@ -3,6 +3,22 @@
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
+	<classpathentry kind="lib" path="C:/Users/andre/Desktop/eclise/adt-bundle-windows-x86_64-20131030/sdk/platforms/android-18/android.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/C:/Users/unzi/Downloads/adt-bundle-windows-x86-20130729/adt-bundle-windows-x86-20130729/sdk/docs/reference"/>
+		</attributes>
+		<accessrules>
+			<accessrule kind="nonaccessible" pattern="com/android/internal/**"/>
+		</accessrules>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/andre/Desktop/eclise/adt-bundle-windows-x86_64-20131030/sdk/platforms/android-12/android.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/C:/Users/unzi/Downloads/adt-bundle-windows-x86-20130729/adt-bundle-windows-x86-20130729/sdk/docs/reference"/>
+		</attributes>
+		<accessrules>
+			<accessrule kind="nonaccessible" pattern="com/android/internal/**"/>
+		</accessrules>
+	</classpathentry>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry kind="output" path="bin/classes"/>

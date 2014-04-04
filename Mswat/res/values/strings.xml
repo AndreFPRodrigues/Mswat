@@ -26,5 +26,6 @@
     <string name="set_keyboard">Select the active keyboard</string>
     <string name="tpr">Touch recognizer</string>
     <string name="set_tpr">Select the proper Touch recognizer module</string>
+    <string name="title_activity_run_macro">RunMacro</string>
 
 </resources>

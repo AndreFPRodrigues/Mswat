@@ -21,7 +21,7 @@ public class WifiControl extends ControlInterface {
 
 	Handler updateConversationHandler;
 
-	Thread serverThread = null;
+	Thread serverThread = null; 
 
 	private final int NAV_NEXT = 0;
 	private final int NAV_PREV = 1;
@@ -29,6 +29,9 @@ public class WifiControl extends ControlInterface {
 	private final int FOCUS = 3;
 	private final int TOUCH = 4;
 	private final int AUTO_HIGHLIGHT = 5;
+	private final int HOME = 6;
+	private final int BACK = 7;
+	private final int CLICK = 8;
 
 	public static final int SERVERPORT = 6000;
 
@@ -138,6 +141,12 @@ public class WifiControl extends ControlInterface {
 				mode = TOUCH;
 			else if (split[0].equals("autoHighlight"))
 				mode = AUTO_HIGHLIGHT;
+			else if (split[0].equals("home"))
+				mode = HOME;
+			else if (split[0].equals("back"))
+				mode = BACK;
+			else if (split[0].equals("clickAt"))
+				mode = CLICK;
 			switch (mode) {
 			case NAV_NEXT:
 				navNext();
@@ -150,8 +159,8 @@ public class WifiControl extends ControlInterface {
 				break;
 			case FOCUS:
 				if (split.length > 1) {
-					int i = Integer.parseInt(split[1]);
-					focusIndex(i);
+				
+					focusIndex(split[1]);
 				}
 				break;
 			case TOUCH:
@@ -160,6 +169,17 @@ public class WifiControl extends ControlInterface {
 				break;
 			case AUTO_HIGHLIGHT:
 				 CoreController.setAutoHighlight(true);
+				break;
+			case HOME:
+				home();
+				break;
+			case BACK:
+				 back();
+				break;
+			case CLICK:
+				if (split.length > 1) {
+					clickNode(split[1]);
+				}
 				break;
 
 			}

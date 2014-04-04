@@ -1,6 +1,7 @@
 package mswat.touch;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import mswat.core.CoreController;
 
@@ -76,34 +77,34 @@ public class TPRTab2 extends TouchRecognizer {
 	 */
 	@Override
 	public int identifyOnRelease(int type, int code, int value, int timestamp) {
-		// Log.d(LT, "t:" + type + " c:" + code + " v:" + value + " time:"
 		// + timestamp);
-		if (code == TRACKING_ID) {
+		if (code == ABS_MT_TRACKING_ID) {
 			identifier = value;
-		} else if (code == PRESSURE)
+		} else if (code == ABS_MT_PRESSURE)
 			pressure = value;
-		else if (code == TOUCH_MAJOR)
+		else if (code == ABS_MT_TOUCH_MAJOR)
 			touchMajor = value;
-		else if (code == TOUCH_MINOR)
+		else if (code == ABS_MT_TOUCH_MINOR)
 			touchMinor = value;
-		if (code == POSITION_X)
+		if (code == ABS_MT_POSITION_X) {
 			lastX = value;
-		else if (code == POSITION_Y)
+		} else if (code == ABS_MT_POSITION_Y)
 			lastY = value;
 		else if (code == SYN_REPORT && value == 0
-				&& lastEventCode != TRACKING_ID) {
+				&& lastEventCode != ABS_MT_TRACKING_ID) {
 			TouchEvent p = new TouchEvent(lastX, lastY, timestamp, pressure,
 					touchMajor, touchMinor, identifier);
 			longTouchTime = timestamp;
 			touches.add(p);
 		}
-		if (code == TRACKING_ID && value == -1 && (lastEventCode == SYN_REPORT)
-				&& touches.size() > 0) {
+		if (code == ABS_MT_TRACKING_ID && value == -1
+				&& (lastEventCode == SYN_REPORT) && touches.size() > 0) {
 			lastEventCode = -1;
 			// prevents double tap
 			if ((lastTouch - timestamp) < -doubleTapThreshold) {
 
 				lastTouch = timestamp;
+
 				return identifyTouch();
 			} else
 				return -1;
@@ -120,71 +121,64 @@ public class TPRTab2 extends TouchRecognizer {
 	 */
 	@Override
 	public int identifyOnChange(int type, int code, int value, int timestamp) {
-		switch (code) {
-		case POSITION_X:
-			lastX = value;
-			break;
-		case POSITION_Y:
+		//Log.d(LT, "t:" + type + " c:" + code + " v:" + value); // " time:"
 
-			lastY = value;
+		switch (code) {
+		case ABS_MT_POSITION_X:
+			// Log.d(LT, "X: " + value ); //" time:"
+			xs.put(slot, value);
 			break;
-		case PRESSURE:
+		case ABS_MT_POSITION_Y:
+			ys.put(slot, value);
+			break;
+		case ABS_MT_PRESSURE:
 			pressure = value;
 			break;
-		case TOUCH_MAJOR:
+		case ABS_MT_TOUCH_MAJOR:
 			touchMajor = value;
 			break;
-		case TOUCH_MINOR:
+		case ABS_MT_TOUCH_MINOR:
 			touchMinor = value;
 			break;
-		case TRACKING_ID:
-
+		case ABS_MT_TRACKING_ID:
+			// Log.d(LT, "ID: " + value ); //" time:"
 			identifier = value;
-			break;
-		case MT_SLOT:
+			if (identifier > 0) {
 
-			if (value > 0)
-				numberTouches++;
+				tou.remove(ids.get(slot));
+				ids.put(slot, identifier);
+
+			}
+
+			break;
+		case ABS_MT_SLOT:
+			// Log.d(LT, "SLOT: " + value ); //" time:"
 			slot = value;
+			if (ids.containsKey(slot))
+				identifier = ids.get(slot);
 			break;
 		case SYN_REPORT:
 
-			TouchEvent p;
 			if (identifier > 0) {
-				checkResetTouches();
-				if(slot>id_touches.size()-1){
-					id_touches.add(identifier);
-				}else
-					id_touches.set(slot, identifier);
-				p = new TouchEvent(lastX, lastY, timestamp, pressure,
-						touchMajor, touchMinor, identifier);
-				touches.add(p);
-				time= timestamp;
-				identifier = -identifier;
-				numberTouches++;
-				return DOWN;    
-			} else {
-				if (identifier != -1) {
+				if (tou.containsKey(ids.get(slot))) {
+					tou.put(ids.get(slot),
+							new TouchEvent(xs.get(slot), ys.get(slot),
+									timestamp, pressure, touchMajor,
+									touchMinor, ids.get(slot)));
 
-					p = new TouchEvent(lastX, lastY, timestamp, pressure,
-							touchMajor, touchMinor, -identifier);
-					touches.add(p);
-					if (checkIfMoved(p)) {
-						if (slot >= 0 && id_touches.size() > slot) {
-							identifier = -id_touches.get(slot);
-						}
-						return MOVE;
-					}
-				} else {
-					if (slot >= 0 && id_touches.size() > slot) {
-						identifier = id_touches.get(slot);
-						id_touches.set(slot, -1);
-					}
+					return MOVE;
+				}
+				tou.put(ids.get(slot),
+						new TouchEvent(xs.get(slot), ys.get(slot), timestamp,
+								pressure, touchMajor, touchMinor, ids.get(slot)));
 
-					if (numberTouches == 1)
-						touches.clear();
-					else
-						numberTouches--;
+				return DOWN;
+			} else if (identifier == -1) {
+				if (ids.containsKey(slot)) {
+					tou.put(ids.get(slot),
+							new TouchEvent(xs.get(slot), ys.get(slot),
+									timestamp, pressure, touchMajor,
+									touchMinor, ids.get(slot)));
 
 					return UP;
 				}
@@ -194,7 +188,7 @@ public class TPRTab2 extends TouchRecognizer {
 
 		// Log.d(LT, "t:" + type + " c:" + code + " v:" + value);
 		return -1;
-	} 
+	}
 
 	private void checkResetTouches() {
 		boolean reset = true;
@@ -208,9 +202,15 @@ public class TPRTab2 extends TouchRecognizer {
 			id_touches.clear();
 	}
 
-	private void clearTouchesFromId(int idFingerUp2) {
-		// TODO Auto-generated method stub
-
+	private void clearTouchesFromId() {
+		int aux = -1;
+		for (int i : id_touches) {
+			aux++;
+			if (i == -1) {
+				id_touches.remove(aux);
+				break;
+			}
+		}
 	}
 
 	@Override
@@ -218,5 +218,11 @@ public class TPRTab2 extends TouchRecognizer {
 		if (identifier < 0)
 			return -identifier;
 		return identifier;
+	}
+
+	@Override
+	public TouchEvent getlastTouch() {
+
+		return tou.get(ids.get(slot));
 	}
 }

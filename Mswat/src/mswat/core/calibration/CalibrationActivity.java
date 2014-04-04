@@ -24,8 +24,7 @@ public class CalibrationActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		// setContentView(R.layout.activity_calibration);
-		// addListenerOnButton();
+
 
 		setContentView(R.layout.activity_listviewexampleactivity);
 		final ListView listview = (ListView) findViewById(R.id.listview);

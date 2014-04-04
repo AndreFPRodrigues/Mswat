@@ -19,7 +19,7 @@ import mswat.touch.TouchRecognizer;
 public class Logger extends BroadcastReceiver implements IOReceiver {
 
 	private final static String LT = "Loggin";
-	private Context context;
+	private static Context context;
 	private int device;
 	private TouchRecognizer tpr; 
 
@@ -141,6 +141,8 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 	 * @param message
 	 */
 	public void registerToLog(ArrayList<String> message, String filepath) {
+		Log.d(LT, "Writing to:"+filepath );
+		Log.d(LT, "Writing: "+message.toString() );
 
 		LogToFile task = new LogToFile(context, message, filepath);
 		task.execute();
@@ -176,10 +178,8 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 			this.myContextRef = context;
 			text = message;
 			this.filepath = filepath;
-		}
-
-		@Override
-		protected Void doInBackground(Void... params) {
+			
+			//code should be in the method bellow (bug issues with screenReader)
 			File file = new File(filepath );
 			FileWriter fw;
 
@@ -194,6 +194,27 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 				e.printStackTrace();
 			}
 
+		}
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			
+			//code in the method above due to bug, should be here
+			/*
+			File file = new File(filepath );
+			FileWriter fw;
+
+			try {
+				fw = new FileWriter(file, true);
+				for (int i = 0; i < text.size(); i++) {
+					fw.write(text.get(i) + "\n");
+				}
+				fw.close();
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			 	*/
 			return null;
 
 		}

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import tutorials.adapt.TouchAdapter;
+
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -12,7 +14,6 @@ import mswat.core.CoreController;
 import mswat.core.activityManager.HierarchicalService;
 import mswat.core.ioManager.Events.InputDevice;
 import mswat.core.logger.Logger;
-import mswat.examples.adapt.TouchAdapter;
 import mswat.touch.TPRNexusS;
 import mswat.touch.TouchRecognizer;
 
@@ -50,7 +51,7 @@ public class Monitor {
 	 */
 	public Monitor(HierarchicalService hs, boolean broadcastIO, int touchIndex) {
 		Events ev = new Events();
-		dev = ev.Init();
+		dev = ev.Init(); 
 
 		this.touchIndex = touchIndex;
 		monitoring = new boolean[dev.size()];
@@ -121,7 +122,7 @@ public class Monitor {
 	 * @param value
 	 */
 	public void injectToTouch(int type, int code, int value) {
-		Log.d(LT, "touch index:" + touchIndex);
+		//Log.d(LT, "touch index:" + touchIndex);
 		dev.get(touchIndex).send(touchIndex, type, code, value);
 	}
 
@@ -160,10 +161,11 @@ public class Monitor {
 
 					}
 				}
-
+				
 				CoreController.setScreenSize(tp.getLastX() + 25,
 						tp.getLastY() + 125);
-
+				//correction to getpoll bug (cached values from calibration to the first monitoring)
+				monitorTouch();
 				Log.d(LT, "height:" + CoreController.S_HEIGHT + " width:"
 						+ CoreController.S_WIDTH);
 
@@ -194,7 +196,7 @@ public class Monitor {
 
 						Looper.prepare();
 						InputDevice idev = dev.get(index);
-
+						
 						int eventsGathered = 0;
 
 						ArrayList<String> event_devices = new ArrayList<String>();
@@ -204,15 +206,15 @@ public class Monitor {
 						ArrayList<Integer> event_timestamps = new ArrayList<Integer>();
 
 						while (monitoring[index]) {
-
+							
 							if (idev.getOpen() && idev.getPollingEvent() == 0) {
 								int type = idev.getSuccessfulPollingType();
 								int code = idev.getSuccessfulPollingCode();
 								int value = idev.getSuccessfulPollingValue();
 								int timestamp = idev.getTimeStamp();
-								 Log.d(LT, type + " " + code + " " + value +
-								 " "
-								 + timestamp);
+								// Log.d(LT, type + " " + code + " " + value +
+								// " "
+								 //+ timestamp);
 								CoreController.updateIOReceivers(index, type,
 										code, value, timestamp);
 

@@ -8,6 +8,7 @@ import android.util.Log;
 
 public class ServicePreferences extends PreferenceActivity implements
 		OnSharedPreferenceChangeListener {
+	private final static String LT = "CoreController";
 
 	public final String LOG_IO = "log1";
 	public final String LOG_AT_TOUCH = "log2";

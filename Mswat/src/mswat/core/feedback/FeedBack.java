@@ -2,18 +2,27 @@ package mswat.core.feedback;
 
 import java.util.Locale;
 
+import mswat.core.CoreController;
 import mswat.core.activityManager.HierarchicalService;
 
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 public class FeedBack implements OnInitListener {
 
@@ -36,6 +45,9 @@ public class FeedBack implements OnInitListener {
 
 	static boolean firstTime = true;
 	static boolean stop = false;
+
+	// macro commands
+	static LinearLayout macroLayout;
 
 	public FeedBack(HierarchicalService hs, WindowManager windowManager,
 			LayoutParams params) {
@@ -163,7 +175,7 @@ public class FeedBack implements OnInitListener {
 	public static void addHighlight(final int marginTop, final int marginLeft,
 			final float alpha, final int width, final int height,
 			final int color) {
-		Log.d(LT, "ADD OVERLAY");
+		// Log.d(LT, "ADD OVERLAY");
 
 		hightligherHandler.post(new Runnable() {
 			public synchronized void run() {
@@ -198,19 +210,111 @@ public class FeedBack implements OnInitListener {
 	/**
 	 * Clear highlights
 	 */
-	public static void clearHightlights() { 
-
-		if (overlay != null && overlay.getHeight()!=0 ) {
+	public static void clearHightlights() {
+		if (macroLayout != null) {
+			// windowManager.removeView(macroLayout);
+			macroLayout.removeAllViews();
+		}else
+		if (overlay != null && overlay.getHeight() != 0) {
 			windowManager.removeView(overlay);
 			overlay.removeAllViews();
-			overlay = null; 
+			// overlay = null;
 			stop = true;
-		}
+			firstTime = true;
+		} 
 	}
 
 	public static void stop() {
 		clearHightlights();
+		Log.d(LT, "Feed back stoped");
 		mTts.shutdown();
+
+	}
+
+	public static void enableHightlights() {
+		stop = false;
+
+	}
+
+	public static void macroCommands() {
+
+		LinearLayout.LayoutParams buttonLayout = new LinearLayout.LayoutParams(
+				60, 60);
+		macroLayout = new LinearLayout(hs);
+		Button home = new Button(hs);
+		home.setLayoutParams(buttonLayout);
+		home.append("H");
+
+		Button back = new Button(hs);
+		back.setLayoutParams(buttonLayout);
+		back.append("B");
+
+		Button mode = new Button(hs);
+		mode.setLayoutParams(buttonLayout);
+		mode.append("M");
+
+		Button end = new Button(hs);
+		end.setLayoutParams(buttonLayout);
+		end.append("E");
+
+		WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+				WindowManager.LayoutParams.WRAP_CONTENT,
+				WindowManager.LayoutParams.WRAP_CONTENT,
+				WindowManager.LayoutParams.TYPE_SYSTEM_ALERT,
+				WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+						| WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+				PixelFormat.OPAQUE);
+		params.gravity = Gravity.RIGHT | Gravity.TOP;
+
+		home.setOnTouchListener(new android.view.View.OnTouchListener() {
+
+			@Override
+			public boolean onTouch(View v, android.view.MotionEvent event) {
+				if (event.getAction() == MotionEvent.ACTION_DOWN) {
+					CoreController.addMacroStep("Home");
+					CoreController.home();
+				}
+				return false;
+			}
+		});
+		back.setOnTouchListener(new android.view.View.OnTouchListener() {
+
+			@Override
+			public boolean onTouch(View v, android.view.MotionEvent event) {
+				if (event.getAction() == MotionEvent.ACTION_DOWN) {
+					CoreController.addMacroStep("Back");
+					CoreController.back();
+				}
+				return false;
+			}
+		});
+		mode.setOnTouchListener(new android.view.View.OnTouchListener() {
+
+			@Override
+			public boolean onTouch(View v, android.view.MotionEvent event) {
+				if (event.getAction() == MotionEvent.ACTION_UP) {
+					CoreController.changeModeMacro();
+				}
+				return false;
+			}
+		});
+		end.setOnTouchListener(new android.view.View.OnTouchListener() {
+
+			@Override
+			public boolean onTouch(View v, android.view.MotionEvent event) {
+				if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+					CoreController.finishMacro();
+				}
+				return false;
+			}
+		});
+		macroLayout.addView(home);
+		macroLayout.addView(back);
+		macroLayout.addView(mode);
+		macroLayout.addView(end);
+
+		windowManager.addView(macroLayout, params);
 
 	}
 

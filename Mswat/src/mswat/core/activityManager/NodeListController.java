@@ -81,9 +81,12 @@ public class NodeListController {
 	 * Select current focused node
 	 */
 	public String selectFocus() {
-		if (currentNavIndex != -1 && currentNavIndex < listCurrentNodes.size()) {
-			Log.d(LT, "Index:" + currentNavIndex);
+		if (currentNavIndex > -1 && currentNavIndex < listCurrentNodes.size()) {
+			// Log.d("ScreenReader", "select index" + currentNavIndex);
+			boolean result = false;
 			Node n = listCurrentNodes.get(currentNavIndex);
+			Log.d(LT, "Index:" + currentNavIndex + " " + n.getName());
+
 			currentNavIndex = -1;
 			if (n != null) {
 				if (n.getAccessNode() != null) {
@@ -92,8 +95,10 @@ public class NodeListController {
 							if (!n.getAccessNode()
 									.performAction(
 											AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD)) {
+
 								navDirection = BACKWARD;
-								n.getAccessNode()
+								result = n
+										.getAccessNode()
 										.performAction(
 												AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD);
 							}
@@ -102,18 +107,37 @@ public class NodeListController {
 									.performAction(
 											AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD)) {
 								navDirection = FOWARD;
-								n.getAccessNode()
+
+								result = n
+										.getAccessNode()
 										.performAction(
 												AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD);
 							}
 						}
 					} else {
 						if (n.getAccessNode().isClickable()) {
-							n.getAccessNode().performAction(
-									AccessibilityNodeInfo.ACTION_CLICK);
+							Log.d(LT,
+									"res3.0" + n.getBounds().left + " " + n.getBounds().right + " " + n.getBounds().top + " " + n.getBounds().bottom + " "+CoreController.M_WIDTH );
+							// MACRO FIX MIGHT BUG OTHERs
+							if (n.getBounds().left >= 0
+									&& n.getBounds().right >= 0 
+									&& n.getBounds().bottom >= 0
+									&& n.getBounds().top >= 0 && n.getBounds().right<=CoreController.M_WIDTH) {
+								Log.d(LT,
+										"res3.1 " +  n.getAccessNode());
+
+								result = n.getAccessNode().performAction(
+										AccessibilityNodeInfo.ACTION_CLICK); 
+								Log.d(LT,
+										"res3.2 " +  n.getAccessNode().isFocused());
+
+							}
 						} else {
 							if (n.getAccessNode().getParent() != null) {
-								n.getAccessNode()
+								Log.d(LT, "res4");
+
+								result = n
+										.getAccessNode()
 										.getParent()
 										.performAction(
 												AccessibilityNodeInfo.ACTION_CLICK);
@@ -122,14 +146,17 @@ public class NodeListController {
 
 					}
 				}
+				if (!result || n.getName().length() < 1) {
+					return null;
+				}
 				return n.getName();
 			}
 
 		}
-		/* VISUAL FEED BACK CLEAR
-		if (visualFeedback){
-			FeedBack.clearHightlights();
-		}*/
+		/*
+		 * VISUAL FEED BACK CLEAR if (visualFeedback){
+		 * FeedBack.clearHightlights(); }
+		 */
 
 		return "";
 
@@ -163,8 +190,8 @@ public class NodeListController {
 					}
 
 				}
-				if (visualFeedback){
-					//FeedBack.clearHightlights();
+				if (visualFeedback) {
+					// FeedBack.clearHightlights();
 				}
 
 				currentNavIndex = -1;
@@ -291,19 +318,20 @@ public class NodeListController {
 	public int getNodeIndexByName(String name) {
 		int size = listCurrentNodes.size();
 
-		for (int i = size-1; i > -1; i--) {
+		for (int i = size - 1; i > -1; i--) {
 			if (listCurrentNodes.get(i).getName().equals(name)) {
+				if(name.equals("SCROLL"))
+					return -55;
 				return i;
 			}
 		}
 
 		return -1;
 	}
-	
+
 	public String getNodeNameByIndex(int index) {
 		return listCurrentNodes.get(index).getName();
 	}
-
 
 	/**
 	 * Return
@@ -330,7 +358,7 @@ public class NodeListController {
 
 				degree = getAngle(x, y, n.getX(), n.getY());
 
-				//Log.d(LT, "Graus" + degree + " nome:" + n.getName());
+				// Log.d(LT, "Graus" + degree + " nome:" + n.getName());
 
 				/*
 				 * if(angles.size()==0){ angles.add((int)degree);
@@ -386,6 +414,26 @@ public class NodeListController {
 					return i1;
 			} else
 				return i1;
+		} else if (i2 > -1) {
+			return -i2;
+		} else
+			return -66;
+	}
+
+	public int getNearestNodeDistance(int x, int y, String node1, String node2) {
+		int i1 = getNodeIndexByName(node1);
+		int i2 = getNodeIndexByName(node2);
+		if (i1 > -1) {
+			Node n1 = listCurrentNodes.get((i1));
+
+			if (i2 > -1) {
+				Node n2 = listCurrentNodes.get((i2));
+				if (n1.distanceTo(x, y) > n2.distanceTo(x, y))
+					return (int) n2.distanceTo(x, y);
+				else
+					return (int) n1.distanceTo(x, y);
+			} else
+				return (int) n1.distanceTo(x, y);
 		}
 		return -66;
 	}
@@ -418,6 +466,7 @@ public class NodeListController {
 	void updateList(ArrayList<Node> list) {
 		listCurrentNodes.clear();
 		listCurrentNodes = list;
+		// Log.d("ScreenReader", "Interfering");
 		currentNavIndex = -1;
 
 	}
@@ -447,16 +496,20 @@ public class NodeListController {
 	 * 
 	 * @param index
 	 */
-	public void focusIndex(int index) {
+	public void focusIndex(String name) {
+		// getInde
+		int index = getNodeIndexByName(name);
 		if (index == -55) {
 			currentNavIndex = listCurrentNodes.size() - 1;
 		} else {
 			currentNavIndex = index;
+			// Log.d("ScreenReader", "name:" +name + " id:" + index);
 			if (visualFeedback) {
+
 				if (currentNavIndex < listCurrentNodes.size()
-						&& currentNavIndex > -1) { 
+						&& currentNavIndex > -1) {
 					Node n = listCurrentNodes.get(currentNavIndex);
-					
+
 					FeedBack.hightlight(n.getBounds().top /*- 40*/, n
 							.getBounds().left, (float) 0.6, n.getBounds()
 							.width(), n.getBounds().height(), Color.BLUE);
@@ -466,21 +519,22 @@ public class NodeListController {
 	}
 
 	public Node getNodeByIndex(int index) {
-		return listCurrentNodes.get(index);
+		if (index != -1)
+			return listCurrentNodes.get(index);
+		return null;
 	}
 
-	public void highlightIndex(int index) {
-		currentNavIndex = index;
-		if (currentNavIndex < listCurrentNodes.size()
-				&& currentNavIndex > -1) { 
-			Node n = listCurrentNodes.get(currentNavIndex);
-			
-			FeedBack.addHighlight(n.getBounds().top /*- 40*/, n
-					.getBounds().left, (float) 0.6, n.getBounds()
-					.width(), n.getBounds().height(), Color.BLUE);
+	public void highlightIndex(String name) {
+		// currentNavIndex = getNodeIndexByName(name);
+		int id = getNodeIndexByName(name);
+		if (id < listCurrentNodes.size() && id > -1) {
+			Node n = listCurrentNodes.get(id);
+
+			FeedBack.addHighlight(n.getBounds().top /*- 40*/,
+					n.getBounds().left, (float) 0.6, n.getBounds().width(), n
+							.getBounds().height(), Color.BLUE);
 		}
-		
+
 	}
 
-	
 }

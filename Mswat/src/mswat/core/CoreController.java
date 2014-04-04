@@ -7,46 +7,56 @@ import mswat.controllers.WifiControl;
 import mswat.core.activityManager.HierarchicalService;
 import mswat.core.activityManager.Node;
 import mswat.core.activityManager.NodeListController;
+import mswat.core.activityManager.R;
 import mswat.core.feedback.FeedBack;
 import mswat.core.ioManager.Monitor;
 import mswat.core.logger.Logger;
+import mswat.core.macro.MacroManagment;
+import mswat.core.macro.RunMacro;
+import mswat.core.macro.TouchMonitor;
 import mswat.interfaces.ContentReceiver;
 import mswat.interfaces.IOReceiver;
 import mswat.interfaces.NotificationReceiver;
 import mswat.keyboard.SwatKeyboard;
 import mswat.touch.TouchRecognizer;
+import android.app.AlertDialog;
 import android.app.KeyguardManager;
 import android.app.KeyguardManager.KeyguardLock;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.Editable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.EditText;
 
-public class CoreController { 
+public class CoreController {
 
 	// debugging tag
 	private final static String LT = "CoreController";
- 
+
 	// Modules where to forward messages
 	private static NodeListController nController;
 	private static Monitor monitor;
+	private static MacroManagment macroM;
 
 	private static String controller;
 	private static String keyboard;
 	private static boolean logIo;
 	private static boolean logNav;
 	private static boolean logAtTouch;
-
 
 	// List of receivers
 	private static Hashtable<Integer, IOReceiver> ioReceivers;
@@ -55,10 +65,10 @@ public class CoreController {
 	private static ArrayList<Logger> loggers;
 
 	// active keyboard
-	private static SwatKeyboard activeKeyboard=null;
-	
-	//active touch recognizer
-	private static TouchRecognizer tpr=null;
+	private static SwatKeyboard activeKeyboard = null;
+
+	// active touch recognizer
+	private static TouchRecognizer tpr = null;
 	private static String tprPreference;
 	// Context
 	private static HierarchicalService hs;
@@ -86,6 +96,12 @@ public class CoreController {
 	public static double S_WIDTH = 1024;
 	public static double S_HEIGHT = 960;
 
+	private static String currentMacro;
+	private static int macroMode = MacroManagment.NAV_MACRO;
+	// TODO get from preferences to allow touch macros
+	private static boolean allowMacroTouch = true;
+	private static TouchMonitor tm;
+
 	/**
 	 * Initialise CoreController
 	 * 
@@ -94,16 +110,18 @@ public class CoreController {
 	 * @param hierarchicalService
 	 * @param controller
 	 * @param waitForCalibration
-	 * @param logNav 
-	 * @param logAtTouch 
+	 * @param logNav
+	 * @param logAtTouch
 	 * @param keyboard
-	 * @param tpr2 
+	 * @param tpr2
 	 */
 	public CoreController(NodeListController nController, Monitor monitor,
 			HierarchicalService hierarchicalService, String controller,
-			boolean waitForCalibration, boolean logIO, boolean logNav, boolean logAtTouch, String keyboard, String tprPreference) {
+			boolean waitForCalibration, boolean logIO, boolean logNav,
+			boolean logAtTouch, String keyboard, String tprPreference) {
 		CoreController.monitor = monitor;
 		CoreController.nController = nController;
+		CoreController.macroM = new MacroManagment();
 		hs = hierarchicalService;
 
 		// initialise arrayListReceivers
@@ -115,9 +133,9 @@ public class CoreController {
 		this.controller = controller;
 		this.logIo = logIO;
 		this.keyboard = keyboard;
-		this.tprPreference= tprPreference;
-		this.logNav=logNav;
-		this.logAtTouch=logAtTouch;
+		this.tprPreference = tprPreference;
+		this.logNav = logNav;
+		this.logAtTouch = logAtTouch;
 
 		Log.d(LT, "log:" + logIO);
 
@@ -138,7 +156,7 @@ public class CoreController {
 		display.getSize(size);
 		M_WIDTH = size.x;
 		M_HEIGHT = size.y;
-		Log.d(LT,"w:" + M_WIDTH + " h:" + M_HEIGHT);
+		Log.d(LT, "w:" + M_WIDTH + " h:" + M_HEIGHT);
 
 	}
 
@@ -192,16 +210,16 @@ public class CoreController {
 			int value, int timestamp) {
 		int size = ioReceivers.size();
 		for (int i = 0; i < size; i++) {
-			
-				ioReceivers.get(i).onUpdateIO(device, type, code, value, timestamp);
+
+			ioReceivers.get(i).onUpdateIO(device, type, code, value, timestamp);
 		}
 	}
-	
+
 	public static void sendTouchIOReceivers(int type) {
 		int size = ioReceivers.size();
 		for (int i = 0; i < size; i++) {
-			
-				ioReceivers.get(i).onTouchReceived(type);
+
+			ioReceivers.get(i).onTouchReceived(type);
 		}
 	}
 
@@ -332,7 +350,7 @@ public class CoreController {
 	public static void injectToVirtual(int t, int c, int v) {
 		monitor.injectToVirtual(t, c, v);
 	}
-	
+
 	public static void injectToTouch(int t, int c, int v) {
 		monitor.injectToTouch(t, c, v);
 	}
@@ -388,8 +406,86 @@ public class CoreController {
 
 		int size = contentReceivers.size();
 		for (int i = 0; i < size; i++) {
+			;
+			content = prepareContent(contentReceivers.get(i).getType(), content);
 			contentReceivers.get(i).onUpdateContent(content);
 		}
+	}
+
+	private static ArrayList<Node> prepareContent(int contentType,
+			ArrayList<Node> content) {
+
+		Rect outBounds = new Rect();
+		ArrayList<Node> result = new ArrayList<Node>();
+
+		switch (contentType) {
+		case ContentReceiver.ALL_CONTENT:
+			return content;
+		case ContentReceiver.CLICKABLE:
+			for (Node n : content) {
+				n.getAccessNode().getBoundsInScreen(outBounds);
+				AccessibilityNodeInfo parent = n.getAccessNode().getParent();
+				if ((n.getAccessNode().isClickable() || parent.isClickable())
+						&& (outBounds.centerX() > 0 && outBounds.centerY() > 0))
+					result.add(n);
+			}
+			return result;
+		case ContentReceiver.DESCRIBABLE:
+			String debug;
+			for (Node n : content) {
+				n.getAccessNode().getBoundsInScreen(outBounds);
+
+				if ((n.getAccessNode().getText() != null || n.getAccessNode()
+						.getContentDescription() != null)
+						&& (outBounds.centerX() > 0 && outBounds.centerY() > 0)) {
+					result.add(n);
+				}
+
+			}
+			return result;
+		case ContentReceiver.INTERACTIVE:
+			for (Node n : content) {
+				n.getAccessNode().getBoundsInScreen(outBounds);
+				AccessibilityNodeInfo parent = n.getAccessNode().getParent();
+
+				if ((n.getAccessNode().getText() != null || n.getAccessNode()
+						.getContentDescription() != null)
+						&& (n.getAccessNode().isClickable() || parent
+								.isClickable())
+						&& (outBounds.centerX() > 0 && outBounds.centerY() > 0))
+					result.add(n);
+			}
+			return result;
+
+		case ContentReceiver.INTERACTIVE_CHILDREN:
+			for (Node n : content) {
+				n.getAccessNode().getBoundsInScreen(outBounds);
+				AccessibilityNodeInfo parent = n.getAccessNode().getParent();
+
+				if ((n.getAccessNode().getText() != null || n.getAccessNode()
+						.getContentDescription() != null)
+						&& (n.getAccessNode().isClickable() || parent
+								.isClickable())
+						&& (outBounds.centerX() > 0 && outBounds.centerY() > 0)) {
+
+					boolean childClickable = false;
+					int childCount;
+					if ((childCount = n.getAccessNode().getChildCount()) > 0) {
+						for (int i = 0; i < childCount; i++) {
+							AccessibilityNodeInfo child = n.getAccessNode().getChild(i);
+								if (child.isClickable())
+									childClickable = true; 
+							
+						}
+					}
+					if (!childClickable)
+						result.add(n);
+
+				}
+			}
+			return result;
+		}
+		return content;
 	}
 
 	/**
@@ -416,16 +512,15 @@ public class CoreController {
 		b.start();
 	}
 
-	
 	/**
 	 * Forwards the message to the appropriate component
 	 * 
 	 * @param command
 	 *            NAV_NEXT/NAV_PREV/SELECT_CURRENT/FOCUS_INDEX
-	 * @param index
+	 * @param string
 	 *            - FOCUS_INDEX
 	 */
-	public static void commandNav(final int command, final int index) {
+	public static void commandNav(final int command, final String string) {
 		Thread b = new Thread(new Runnable() {
 			public void run() {
 
@@ -439,15 +534,15 @@ public class CoreController {
 					break;
 				case SELECT_CURRENT:
 					String navTo = nController.selectFocus();
-					if(logNav && navTo.length()>0){
+					if (logNav && navTo.length() > 0) {
 						updateLoggers("Nav To: " + navTo);
 					}
 					break;
 				case FOCUS_INDEX:
-					nController.focusIndex(index);
+					nController.focusIndex(string);
 					break;
 				case HIGHLIGHT_INDEX:
-					nController.highlightIndex(index);
+					nController.highlightIndex(string);
 					break;
 
 				}
@@ -485,11 +580,12 @@ public class CoreController {
 	public static String getNodeAt(double x, double y) {
 		return nController.getNodeAt(xToScreenCoord(x), yToScreenCoord(y));
 	}
+
 	public static Node getNodeByIndex(int index) {
-		
+
 		return nController.getNodeByIndex(index);
 	}
-	
+
 	/**
 	 * Return the index of the node that contains point with coord x and y
 	 * 
@@ -500,11 +596,11 @@ public class CoreController {
 	public static int getNodeIndexAt(double x, double y) {
 		return nController.getNodeIndexAt(xToScreenCoord(x), yToScreenCoord(y));
 	}
-	
+
 	public static String getNodeNameByIndex(int index) {
 		return nController.getNodeNameByIndex(index);
 	}
-	
+
 	/**
 	 * Return the index of the node by name
 	 * 
@@ -517,7 +613,8 @@ public class CoreController {
 	}
 
 	/**
-	 * Return a array string with the descriptions of the 4  nearest nodes (if they exist) in the four directions
+	 * Return a array string with the descriptions of the 4 nearest nodes (if
+	 * they exist) in the four directions
 	 * 
 	 * 
 	 * @param x
@@ -525,21 +622,39 @@ public class CoreController {
 	 * @return
 	 */
 	public static String[] getNearNode(int x, int y, int radius) {
-		return nController.getNearNode(xToScreenCoord(x), yToScreenCoord(y), radius);
+		return nController.getNearNode(xToScreenCoord(x), yToScreenCoord(y),
+				radius);
 	}
-	
+
 	/**
 	 * Return index of the nearest node
 	 * 
 	 * 
 	 * @param x
 	 * @param y
-	 * @param lastUp 
-	 * @param doubleClickLastUp 
+	 * @param lastUp
+	 * @param doubleClickLastUp
 	 * @return
 	 */
 	public static int getNearestNode(int x, int y, String node1, String node2) {
-		return nController.getNearestNode(xToScreenCoord(x), yToScreenCoord(y), node1, node2);
+		return nController.getNearestNode(xToScreenCoord(x), yToScreenCoord(y),
+				node1, node2);
+	}
+
+	/**
+	 * Return distance to the nearest node
+	 * 
+	 * 
+	 * @param x
+	 * @param y
+	 * @param lastUp
+	 * @param doubleClickLastUp
+	 * @return
+	 */
+	public static int getNearestNodeDistance(int x, int y, String node1,
+			String node2) {
+		return nController.getNearestNodeDistance(xToScreenCoord(x),
+				yToScreenCoord(y), node1, node2);
 	}
 
 	/**
@@ -606,6 +721,13 @@ public class CoreController {
 	}
 
 	/**
+	 * Enables visual feedback after a clear
+	 */
+	public static void enableHightlights() {
+		FeedBack.enableHightlights();
+	}
+
+	/**
 	 * Text to speech returns false when it stops speaking
 	 * 
 	 * @param text
@@ -634,7 +756,8 @@ public class CoreController {
 	 */
 	public static void addHightlight(int marginTop, int marginLeft,
 			float alpha, int width, int height) {
-		FeedBack.addHighlight(marginTop, marginLeft, alpha, width, height, Color.BLUE);
+		FeedBack.addHighlight(marginTop, marginLeft, alpha, width, height,
+				Color.BLUE);
 	}
 
 	/*************************************************
@@ -649,8 +772,8 @@ public class CoreController {
 	 * @return
 	 */
 	public static int xToScreenCoord(double x) {
-		//Log.d(LT, "Mwidth:" + M_WIDTH + " Swidth:" + S_WIDTH + " x:" + x);
-		//Log.d(LT, "m height:" + M_HEIGHT);
+		// Log.d(LT, "Mwidth:" + M_WIDTH + " Swidth:" + S_WIDTH + " x:" + x);
+		// Log.d(LT, "m height:" + M_HEIGHT);
 		return (int) (M_WIDTH / S_WIDTH * x);
 	}
 
@@ -661,7 +784,8 @@ public class CoreController {
 	 * @return
 	 */
 	public static int yToScreenCoord(double y) {
-		//Log.d(LT, "Mheight:" + M_HEIGHT + " Sheight:" + S_HEIGHT + " y:" + y);
+		// Log.d(LT, "Mheight:" + M_HEIGHT + " Sheight:" + S_HEIGHT + " y:" +
+		// y);
 
 		return (int) (M_HEIGHT / S_HEIGHT * y);
 	}
@@ -673,13 +797,13 @@ public class CoreController {
 		hs.sendBroadcast(intent);
 		hs.stopService();
 	}
-	
+
 	public static void stopServiceNoBroadCast() {
 		hs.stopService();
 	}
 
 	private static void startService() {
-		 
+
 		Log.d(LT, "STARTING SERVICE");
 		// Broadcast event
 		Intent intent = new Intent();
@@ -689,8 +813,7 @@ public class CoreController {
 		intent.putExtra("logAtTouch", logAtTouch);
 		intent.putExtra("keyboard", keyboard);
 		hs.sendBroadcast(intent);
-		
-	
+
 	}
 
 	public void setCalibration() {
@@ -703,20 +826,22 @@ public class CoreController {
 	}
 
 	public static void setScreenSize(int width, int height) {
-		height=height-60;
+		height = height - 60;
 		CoreController.S_HEIGHT = height;
 		CoreController.S_WIDTH = width;
-		//Log.d(LT, "width:" + width + " height:" + height);
+		// Log.d(LT, "width:" + width + " height:" + height);
 		hs.storeScreenSize(width, height);
 	}
 
-	/** 
+	/**
 	 * Returns to home
+	 * 
+	 * @return
 	 */
-	public static void home() {
-		hs.home();
+	public static boolean home() {
+		return hs.home();
 	}
-	
+
 	/**
 	 * Returns to home
 	 */
@@ -751,12 +876,12 @@ public class CoreController {
 	 */
 	public static void updateNotificationReceivers(String note) {
 		int size = notificationReceivers.size();
-		if(note.equals("[]")){
-			return ;
+		if (note.equals("[]")) {
+			return;
 		}
-		
-		note = note.substring(1,note.length()-1);
-		
+
+		note = note.substring(1, note.length() - 1);
+
 		for (int i = 0; i < size; i++) {
 			notificationReceivers.get(i).onNotification(note);
 		}
@@ -772,18 +897,19 @@ public class CoreController {
 		intent.putExtra("status", true);
 		hs.sendBroadcast(intent);
 	}
-	
+
 	public static void updateKeyboardUI() {
 		if (activeKeyboard != null)
 			activeKeyboard.update();
-		
+
 	}
-	public static void stopKeyboard(){
+
+	public static void stopKeyboard() {
 		// Broadcast event
-				Intent intent = new Intent();
-				intent.setAction("mswat_keyboard");
-				intent.putExtra("status", false);
-				hs.sendBroadcast(intent);
+		Intent intent = new Intent();
+		intent.setAction("mswat_keyboard");
+		intent.putExtra("status", false);
+		hs.sendBroadcast(intent);
 	}
 
 	public static void callKeyboardWriteChar(int code) {
@@ -793,7 +919,7 @@ public class CoreController {
 		intent.putExtra("direct", false);
 		hs.sendBroadcast(intent);
 	}
-	
+
 	public static void callKeyboardWriteDirect(int code) {
 		Intent intent = new Intent();
 		intent.setAction("mswat_pressKey");
@@ -813,34 +939,97 @@ public class CoreController {
 	public static void registerActivateKeyboard(SwatKeyboard keyboard) {
 		activeKeyboard = keyboard;
 	}
-	
+
 	public static void registerActivateTouch(TouchRecognizer tpr2) {
 		tpr = tpr2;
 	}
-	
-	public static TouchRecognizer getActiveTPR(){
+
+	public static TouchRecognizer getActiveTPR() {
 		return tpr;
 	}
 
-	
-	//Screen reader function convert pixels to milimeter for android nexus s
-	public static int convertToMilY(int y){
-		return (124*y)/800*5;
+	// Screen reader function convert pixels to milimeter for android nexus s
+	public static int convertToMilY(int y) {
+		return (124 * y) / 800 * 5;
 	}
-	//Screen reader function convert pixels to milimeter for android nexus s
-	public static int convertToMilX(int x){
-			return (63*x)/480 *5;
-		}
-	
-	public static double distanceBetween(double x, double y , double x1, double y1) {
+
+	// Screen reader function convert pixels to milimeter for android nexus s
+	public static int convertToMilX(int x) {
+		return (63 * x) / 480 * 5;
+	}
+
+	public static double distanceBetween(double x, double y, double x1,
+			double y1) {
 		return Math.sqrt(Math.pow(y - y1, 2) + Math.pow(x - x1, 2));
 	}
 
 	public static void writeToLog(ArrayList<String> toLog, String filepath) {
-		if(loggers.size()>0)
+		if (loggers.size() > 0) {
+			Log.d(LT, "Writing to log");
 			loggers.get(0).registerToLog(toLog, filepath);
-		
+		}
+
 	}
 
-	
+	public static void addMacroStep(String text) {
+		macroM.addStepTo(currentMacro, text);
+	}
+
+	public static void changeModeMacro() {
+		if (macroMode == MacroManagment.NAV_MACRO)
+			macroMode = MacroManagment.TOUCH_MACRO;
+		else {
+			addMacroStep(tm.getTouches());
+			macroMode = MacroManagment.NAV_MACRO;
+		}
+		macroM.changeMode(macroMode);
+		tm.setMode(macroMode);
+		hs.setMacroMode(macroMode);
+	}
+
+	public static void newMacro(String name) {
+		home();
+		FeedBack.macroCommands();
+		currentMacro = name;
+		macroM.createMacro(name);
+		hs.setCreateMacro(true);
+		tm = new TouchMonitor();
+	}
+
+	public static void finishMacro() {
+		if (macroMode == MacroManagment.TOUCH_MACRO) {
+			macroMode = MacroManagment.NAV_MACRO;
+			addMacroStep(tm.getTouches());
+		}
+		CoreController.clearHightlights();
+		hs.setCreateMacro(false);
+		tm.finish();
+		if (macroM.finishMacro())
+			shortcutIcon(currentMacro);
+	}
+
+	private static void shortcutIcon(String name) {
+
+		Intent shortcutIntent = new Intent(hs.getApplicationContext(),
+				RunMacro.class);
+		shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+		shortcutIntent.putExtra("macro", name);
+
+		Intent addIntent = new Intent();
+		addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
+		addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, name);
+		addIntent.putExtra(
+				Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
+				Intent.ShortcutIconResource.fromContext(
+						hs.getApplicationContext(), R.drawable.ic_launcher));
+		addIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
+		hs.getApplicationContext().sendBroadcast(addIntent);
+	}
+
+	public static void runMacro(String macro) {
+
+		hs.runMacro(macroM.runMacro(macro));
+	}
+
 }

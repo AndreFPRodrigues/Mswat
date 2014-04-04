@@ -2,12 +2,16 @@ package mswat.core.activityManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import mswat.controllers.WifiControl;
 import mswat.core.CoreController;
 import mswat.core.calibration.CalibrationActivity;
 import mswat.core.feedback.FeedBack;
 import mswat.core.ioManager.Monitor;
+import mswat.core.macro.MacroManagment;
+import mswat.core.macro.RunMacro;
+import mswat.core.macro.Touch;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
@@ -22,8 +26,10 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.os.Handler;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
@@ -65,6 +71,15 @@ public class HierarchicalService extends AccessibilityService {
 
 	private boolean broadcastContent = false;
 
+	private static int identifier = 0;
+
+	private boolean creatingMacro = false;
+	private boolean runningMacro = false;
+	private int macroMode = MacroManagment.NAV_MACRO;
+	private Stack<String> command;
+	private final int THRESHOLD_GUARD = 50;
+	private int runMacroMode = MacroManagment.NAV_MACRO;
+
 	/**
 	 * Triggers whenever happens an event (changeWindow, focus, slide) Updates
 	 * the current top parent of the screen contents
@@ -72,18 +87,21 @@ public class HierarchicalService extends AccessibilityService {
 	@Override
 	public void onAccessibilityEvent(AccessibilityEvent event) {
 		// Log.d(LT, event.toString());
-
 		if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)
 			CoreController.updateNotificationReceivers("" + event.getText());
 		else {
+			// Log.d(LT, event.getEventType() + "");
 
 			if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_CLICKED) {
 				if (event.getClassName().toString().contains("EditText")
 						|| event.getClassName().toString()
 								.contains("MultiAutoCompleteTextView")) {
-					Log.d(LT, event.getSource().toString());
 					CoreController.startKeyboard();
 				}
+
+				if (creatingMacro && macroMode == MacroManagment.NAV_MACRO)
+					handleMacroCreation(event);
+
 			} else {
 
 				AccessibilityNodeInfo source = event.getSource();
@@ -140,6 +158,7 @@ public class HierarchicalService extends AccessibilityService {
 				// update the current content list
 				checkList.clear();
 				scrollNodes.clear();
+				identifier = 0;
 				listUpdate(currentParent);
 				if (scrollNodes.size() > 0) {
 
@@ -154,7 +173,12 @@ public class HierarchicalService extends AccessibilityService {
 
 					// Send content update to the receivers
 					CoreController.updateContentReceivers(nodeList);
-					printViewItens((ArrayList<Node>) checkList.clone());
+					printViewItens((ArrayList<Node>) nodeList.clone());
+
+					// Macro step
+					if (runningMacro
+							&& runMacroMode == MacroManagment.NAV_MACRO)
+						checkStep();
 				}
 
 			}
@@ -199,38 +223,53 @@ public class HierarchicalService extends AccessibilityService {
 					scrollNodes.add(new Node((String) "SCROLL", outBounds,
 							child));
 				}
+				String text;
 
 				if (child.getChildCount() == 0) {
 
-					if (child.getText() != null
-							|| child.getContentDescription() != null
-					/* && (child.isClickable() || source.isClickable()) */) {
-						outBounds = new Rect();
-						if (source.getClassName().toString().contains("Linear")) {
-							source.getBoundsInScreen(outBounds);
+					/*
+					 * if (child.getText() != null ||
+					 * child.getContentDescription() != null /* &&
+					 * (child.isClickable() || source.isClickable()) ) {
+					 */
+					outBounds = new Rect();
+					if (source.getClassName().toString().contains("Linear")) {
+						source.getBoundsInScreen(outBounds);
 
-						} else
-							child.getBoundsInScreen(outBounds);
-						if ((outBounds.centerX() > 0 && outBounds.centerY() > 0)) {
+					} else
+						child.getBoundsInScreen(outBounds);
+					if ((outBounds.centerX() > 0 && outBounds.centerY() > 0)) {
+						if ((text = getText(child)) != null) {
+							n = new Node(text, outBounds, child);
 
-							if (child.getText() != null) {
-								n = new Node((String) child.getText()
-										.toString(), outBounds, child);
+							n.setIcon(checkIconMatch(text));
 
-								// Log.d(LT, n.getAccessNode().toString());
-								n.setIcon(checkIconMatch(child.getText()
-										.toString()));
+						} else {
+							n = new Node(child.getClassName().toString()
+									+ identifier, outBounds, child);
+							identifier++;
 
-							} else
-								n = new Node((String) child
-										.getContentDescription().toString(),
-										outBounds, child);
-
-							checkList.add(n);
 						}
+
+						checkList.add(n);
 					}
-				} else
+					// }
+				} else {
+					child.getBoundsInScreen(outBounds);
+					if ((text = getText(child)) != null) {
+
+						n = new Node(text, outBounds, child);
+					} else {
+
+						n = new Node(child.getClassName().toString()
+								+ identifier, outBounds, child);
+						identifier++;
+
+					}
+					checkList.add(n);
+
 					listUpdate(child);
+				}
 			}
 		}
 	}
@@ -297,6 +336,7 @@ public class HierarchicalService extends AccessibilityService {
 		// AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
 
 		Log.d(LT, "CONNECTED");
+
 		// Creating the install app icons list
 		PackageManager pm = getPackageManager();
 		Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
@@ -346,8 +386,7 @@ public class HierarchicalService extends AccessibilityService {
 		broadcastContent = sharedPref.getBoolean(servPref.BROADCAST_CONTENT,
 				false);
 
-		boolean wifi = sharedPref.getBoolean(servPref.WIFI,
-				false);
+		boolean wifi = sharedPref.getBoolean(servPref.WIFI, false);
 		int touchIndex = sharedPref.getInt(servPref.TOUCH_INDEX, -1);
 
 		if ((sharedPref.getInt("s_width", (int) CoreController.S_WIDTH)) != 0) {
@@ -358,7 +397,7 @@ public class HierarchicalService extends AccessibilityService {
 
 		} else {
 			CoreController.S_WIDTH = 1024;
-			CoreController.S_HEIGHT = 960;  
+			CoreController.S_HEIGHT = 960;
 		}
 
 		String controller = sharedPref.getString(servPref.CONTROLLER, "null");
@@ -380,14 +419,14 @@ public class HierarchicalService extends AccessibilityService {
 
 		// initialise monitor
 		monitor = new Monitor(this, broadcastIO, touchIndex);
-		
+
 		// initialise coreController
 		CoreController cc = new CoreController(nlc, monitor, this, controller,
 				calibration, logIO, logNav, logAtTouch, keyboard, tpr);
-		
-		//initialise wifi controller
-		if(wifi){
-			WifiControl wc= new WifiControl();
+
+		// initialise wifi controller
+		if (wifi) {
+			WifiControl wc = new WifiControl();
 		}
 
 		// starts calibration activity
@@ -403,6 +442,7 @@ public class HierarchicalService extends AccessibilityService {
 			// content)
 			home();
 		}
+		Log.d(LT, "CONNECTED7");
 
 	}
 
@@ -452,8 +492,8 @@ public class HierarchicalService extends AccessibilityService {
 	}
 
 	// go to home screen
-	public void home() {
-		performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+	public boolean home() {
+		return performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
 
 	}
 
@@ -497,4 +537,236 @@ public class HierarchicalService extends AccessibilityService {
 			kl.reenableKeyguard();
 	}
 
+	/**
+	 * Gets the node text either getText() or contentDescription
+	 * 
+	 * @param src
+	 * @return node text/description null if it doesnt have
+	 */
+	private String getText(AccessibilityNodeInfo src) {
+		String text = null;
+
+		if (src.getText() != null || src.getContentDescription() != null) {
+			if (src.getText() != null)
+				text = src.getText().toString();
+			else
+				text = src.getContentDescription().toString();
+		}
+		return text;
+	}
+
+	/**
+	 * If creating macro is active it sends the text of the clicked node
+	 * 
+	 * @param event
+	 * @param src
+	 */
+	private void handleMacroCreation(AccessibilityEvent event) {
+
+		AccessibilityNodeInfo src = event.getSource();
+		// Log.d(LT, "handling macro: " +src.toString());
+		if (src != null) {
+			String text;
+			if ((text = getText(src)) != null)
+				CoreController.addMacroStep(text);
+			else {
+				int numchilds = src.getChildCount();
+				// Log.d(LT,"childs: " + numchilds);
+				for (int i = 0; i < numchilds; i++) {
+					if ((text = getText(src.getChild(i))) != null) {
+						CoreController.addMacroStep(text);
+						return;
+					}
+				}
+				src = src.getParent();
+				numchilds = src.getChildCount();
+				// Log.d(LT,"childs: " + numchilds);
+				for (int i = 0; i < numchilds; i++) {
+					if ((text = getText(src.getChild(i))) != null) {
+						CoreController.addMacroStep(text);
+						return;
+					}
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * Start macro recording
+	 * 
+	 * @param createMacro
+	 */
+	public void setCreateMacro(boolean createMacro) {
+		creatingMacro = createMacro;
+	}
+
+	/**
+	 * Change recording macro mode touch/navigation
+	 * 
+	 * @param mode
+	 */
+	public void setMacroMode(int mode) {
+		macroMode = mode;
+	}
+
+	/**
+	 * Run macro
+	 * 
+	 * @param st
+	 */
+	public void runMacro(Stack<String> st) {
+		runningMacro = true;
+		command = st;
+		checkStep();
+
+	}
+
+	/**
+	 * Macro step
+	 */
+	private void checkStep() {
+		if (command.size() == 0) {
+			runningMacro = false;
+			return;
+		}
+
+		String step = command.peek();
+		 Log.d("Macro", "step:" +step);
+		 //Log.d("Macro" , "size:" + step.length());
+		 if(step.length()==0){
+			 command.pop();
+			 return ;
+		 }
+		if (step.equals("!*!")) {
+			command.pop();
+			runMacroMode = MacroManagment.TOUCH_MACRO;
+			makeStepTouch();
+			return;
+		}
+		if (step.equals("Home")) {
+			if (command.size() == 1)
+				CoreController.home();
+			command.pop();
+			if (command.size() == 0) {
+				runningMacro = false;
+				return;
+			}
+			checkStep();
+		} else if (step.equals("Back")) {
+			boolean resul;
+			int tries = 0;
+			do {
+				tries++;
+				resul = CoreController.back();
+			} while (resul && tries < 15);
+
+			command.pop();
+			if (command.size() == 0) {
+				runningMacro = false;
+				return;
+			}
+			checkStep();
+		} else {
+
+			for (Node n : nodeList) {
+				// Log.d("Macro", "nodeName:" + n.getName() + " " + step);
+				if (n.getName().equals(step)) {
+					int failSafe = 0;
+					String result;
+					do {
+						nlc.focusIndex(step);
+						failSafe++;
+						result = nlc.selectFocus();
+
+					} while ((result == null || result.length() == 0)
+							&& failSafe < THRESHOLD_GUARD);
+
+
+					if (failSafe < THRESHOLD_GUARD) {
+						command.pop();
+						if (command.size() == 0)
+							runningMacro = false;
+						checkStep();
+					}
+					return;
+				}
+			}
+			Node n;
+			if ((n = nodeList.get(nodeList.size() - 1)).getName().equals(
+					"SCROLL")) {
+				nlc.focusIndex("SCROLL");
+				if (nlc.selectFocus() == null) {
+					nlc.selectFocus();
+
+				}
+			}
+
+		}
+	}
+
+	private void makeStepTouch() {
+		if (command.size() == 0) {
+			runningMacro = false;
+			runMacroMode = MacroManagment.NAV_MACRO;
+ 
+			return; 
+
+		} 
+
+		String step = command.peek();
+		if (step.equals("!*!")) {
+			command.pop();
+			//makeStepTouch();
+			runMacroMode = MacroManagment.NAV_MACRO;
+			checkStep();
+		} else {
+			if (command.size() > 0) {
+				String s = command.pop();
+				Log.d("Macro", "touch Step : " + s);
+				runTouches(s);
+				//makeStepTouch();
+			} else {
+				runMacroMode = MacroManagment.NAV_MACRO;
+				runningMacro = false;
+			}
+		}
+
+	}
+
+	private void runTouches(String s) {
+		String split[] = s.split(",");
+		final ArrayList<Touch> touches = new ArrayList<Touch>();
+
+		for (int i = 1; i < (split.length - 3); i += 4) {
+			touches.add(new Touch(Integer.parseInt(split[i]), Integer
+					.parseInt(split[i + 1]), Integer.parseInt(split[i + 2]),
+					Double.parseDouble(split[i + 3])));
+		}
+		
+		Handler handler = new Handler();
+		handler.postDelayed(new Runnable() {
+			public void run() { 
+				if (touches.size() > 0) { 
+					double time = touches.get(0).getTimestamp();
+					int value;
+					//Log.d()
+					for (Touch t : touches) {
+						value = t.getValue(); 
+						double sleep = (t.getTimestamp() - time) ; 
+						if(sleep<0)
+							sleep=0;
+						
+						SystemClock.sleep((long) (sleep ));
+					
+
+						CoreController.injectToTouch(t.getType(), t.getCode(),
+								value);
+						time = t.getTimestamp();
+					}
+					makeStepTouch();				}
+			}
+		}, 2000);
+
+	}
 }
