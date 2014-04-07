@@ -73,7 +73,7 @@ public class HierarchicalService extends AccessibilityService {
 
 	private static int identifier = 0;
 
-	private boolean creatingMacro = false;
+	private static boolean creatingMacro = false;
 	private boolean runningMacro = false;
 	private int macroMode = MacroManagment.NAV_MACRO;
 	private Stack<String> command;
@@ -442,7 +442,6 @@ public class HierarchicalService extends AccessibilityService {
 			// content)
 			home();
 		}
-		Log.d(LT, "CONNECTED7");
 
 	}
 
@@ -598,7 +597,11 @@ public class HierarchicalService extends AccessibilityService {
 	 * @param createMacro
 	 */
 	public void setCreateMacro(boolean createMacro) {
+		//Log.d("Macro", "set create mode:" + createMacro);
 		creatingMacro = createMacro;
+		if(creatingMacro)
+			setMacroMode(MacroManagment.NAV_MACRO); 
+
 	}
 
 	/**
@@ -634,7 +637,7 @@ public class HierarchicalService extends AccessibilityService {
 		String step = command.peek();
 		 Log.d("Macro", "step:" +step);
 		 //Log.d("Macro" , "size:" + step.length());
-		 if(step.length()==0){
+		 if(step.length()==0){ 
 			 command.pop();
 			 return ;
 		 }
@@ -670,14 +673,17 @@ public class HierarchicalService extends AccessibilityService {
 		} else {
 
 			for (Node n : nodeList) {
-				// Log.d("Macro", "nodeName:" + n.getName() + " " + step);
 				if (n.getName().equals(step)) {
+					Log.d("Macro", "Found:" + n.getName());
+
 					int failSafe = 0;
 					String result;
 					do {
 						nlc.focusIndex(step);
 						failSafe++;
 						result = nlc.selectFocus();
+						Log.d("Macro", "clicked:" + result);
+
 
 					} while ((result == null || result.length() == 0)
 							&& failSafe < THRESHOLD_GUARD);
@@ -690,7 +696,7 @@ public class HierarchicalService extends AccessibilityService {
 						checkStep();
 					}
 					return;
-				}
+				} 
 			}
 			Node n;
 			if ((n = nodeList.get(nodeList.size() - 1)).getName().equals(

@@ -146,7 +146,7 @@ public class Logger extends BroadcastReceiver implements IOReceiver {
 
 		LogToFile task = new LogToFile(context, message, filepath);
 		task.execute();
-
+ 
 	}
 
 	/**

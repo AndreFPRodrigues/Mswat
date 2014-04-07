@@ -6,6 +6,7 @@ import mswat.core.CoreController;
 import mswat.core.feedback.FeedBack;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.os.SystemClock;
 import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -117,24 +118,24 @@ public class NodeListController {
 					} else {
 						if (n.getAccessNode().isClickable()) {
 							Log.d(LT,
-									"res3.0" + n.getBounds().left + " " + n.getBounds().right + " " + n.getBounds().top + " " + n.getBounds().bottom + " "+CoreController.M_WIDTH );
+									"res3.0 " + n.getBounds().left + " " + n.getBounds().right + " " + n.getBounds().top  );
 							// MACRO FIX MIGHT BUG OTHERs
 							if (n.getBounds().left >= 0
 									&& n.getBounds().right >= 0 
 									&& n.getBounds().bottom >= 0
-									&& n.getBounds().top >= 0 && n.getBounds().right<=CoreController.M_WIDTH) {
+									&& n.getBounds().top >= 0 && n.getBounds().right<=CoreController.M_WIDTH && n.getBounds().bottom<=(CoreController.M_HEIGHT+10)) {
 								Log.d(LT,
 										"res3.1 " +  n.getAccessNode());
-
 								result = n.getAccessNode().performAction(
 										AccessibilityNodeInfo.ACTION_CLICK); 
+							
 								Log.d(LT,
-										"res3.2 " +  n.getAccessNode().isFocused());
+										"res3.2 " +  result);
 
 							}
 						} else {
 							if (n.getAccessNode().getParent() != null) {
-								Log.d(LT, "res4");
+								//Log.d(LT, "res4");
 
 								result = n
 										.getAccessNode()
@@ -280,17 +281,21 @@ public class NodeListController {
 		String result = "null";
 
 		int size = listCurrentNodes.size();
-
+		int sizeResult=10000;
 		for (int i = 0; i < size; i++) {
 
 			if (listCurrentNodes.get(i).isInside(x, y)) {
-				return listCurrentNodes.get(i).getName();
+				Log.d(LT,"inside:"+ listCurrentNodes.get(i).getName() + " size:" +listCurrentNodes.get(i).getBounds().width() );
+				if(sizeResult> listCurrentNodes.get(i).getBounds().width()){
+					result= listCurrentNodes.get(i).getName();
+					sizeResult=listCurrentNodes.get(i).getBounds().width();
+				}
 			}
 
-		}
+		}  
 
 		return result;
-	}
+	} 
 
 	/**
 	 * Gets node name at given coords, null if none

@@ -39,7 +39,7 @@ public class MacroManagment {
 	public MacroManagment() {
 		macros = new HashMap<String, ArrayList<String>>();
 		filepath = Environment.getExternalStorageDirectory().toString()
-				+ "/macros/macros.text";
+				+ "/macros.text";
 		File f = new File(filepath);
 		Scanner scanner;
 		try {
@@ -47,21 +47,24 @@ public class MacroManagment {
 
 			while (scanner.hasNextLine()) {
 				String line = scanner.nextLine();
-				Log.d(LT, "l:" + line);
+				Log.d(LT, "line:" + line);
 				String split[] = line.split(";");
 				if (split.length > 1) {
 					String splitModes[] = split[1].split(Pattern.quote("!*!"));
 					int mode = 0;
 					ArrayList<String> commands = new ArrayList<String>();
 					for (String com : splitModes) {
-						//Log.d(LT, "Split string:" + com);
+						// Log.d(LT, "Split string:" + com);
 
 						if ((mode % 2) == 0) {
 							String[] splitCommands = com.split(",");
-							for (String com1 : splitCommands){
-								Log.d(LT, "Add command:" + com1);
+							for (String com1 : splitCommands) {
+								if (com1.length() > 0) {
+									Log.d(LT, "Add command:" + com1 + " size:"
+											+ com1.length());
 
-								commands.add(com1);
+									commands.add(com1);
+								}
 							}
 						} else {
 							commands.add(com);
@@ -91,13 +94,15 @@ public class MacroManagment {
 
 	public boolean addStepTo(String macro, String step) {
 		long ls = System.currentTimeMillis();
+
 		if (macroMode == TOUCH_MACRO
 				|| ((currentMacro.size() > 0 || (currentMacro.size() == 0 && !step
-						.equals("Ok"))) && ((ls - lastStep) > 500) )) {
+						.equals("Ok"))) && ((ls - lastStep) > 500))) {
 			lastStep = ls;
-			Log.d(LT, "macro:" + step);
 
-			return currentMacro.add(step);
+			Log.d(LT, "macro:" + step);
+ 
+			return currentMacro.add(step); 
 		}
 
 		return false;
@@ -117,7 +122,11 @@ public class MacroManagment {
 				fw = new FileWriter(file, true);
 				fw.write(currentName + ";");
 				for (String macro : currentMacro) {
-					fw.write(macro + ",");
+					if (macro.equals("!*!"))
+						fw.write(macro);
+
+					else
+						fw.write(macro + ",");
 				}
 				fw.write("\n");
 				fw.close();
@@ -127,13 +136,14 @@ public class MacroManagment {
 
 				e.printStackTrace();
 			}
+			macroMode= NAV_MACRO;
 			return true;
 		}
 		return false;
-	} 
+	}
 
 	public Stack<String> runMacro(String macro) {
-		ArrayList<String> cm = macros.get(macro); 
+		ArrayList<String> cm = macros.get(macro);
 		Stack<String> st = new Stack<String>();
 		for (String s : cm) {
 			Log.d(LT, "added to command: " + s);

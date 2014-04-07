@@ -26,10 +26,12 @@ public class TouchMonitor implements mswat.interfaces.IOReceiver {
 			int timestamp) {
 		if (macroMode == MacroManagment.TOUCH_MACRO) {
 			// Log.d(LT, "Device:" + device + " type:" + type + " code" + code +
-			 //" value:" + value + " timestamp:" + timestamp);
+			// " value:" + value + " timestamp:" + timestamp);
 			//
-			//CoreController.addMacroStep(type +"," + code +"," +value +"," +timestamp );
-			touches.append(type +"," + code +"," +value +"," +timestamp +",");
+			// CoreController.addMacroStep(type +"," + code +"," +value +","
+			// +timestamp );
+			touches.append(type + "," + code + "," + value + "," + timestamp
+					+ ",");
 		}
 	}
 
@@ -38,11 +40,14 @@ public class TouchMonitor implements mswat.interfaces.IOReceiver {
 		// TODO Auto-generated method stub
 
 	}
-	
-	public String getTouches(){
-		String result = ","+touches.substring(0, touches.length()-2);
-		touches = new StringBuilder();
-		return result;
+
+	public String getTouches() {
+		if (touches.length() > 2) {
+			String result = "," + touches.substring(0, touches.length() - 2);
+			touches = new StringBuilder();
+			return result;
+		} else
+			return "";
 	}
 
 	public TouchMonitor() {
@@ -52,13 +57,12 @@ public class TouchMonitor implements mswat.interfaces.IOReceiver {
 	}
 
 	public void setMode(int mode) {
-		Log.d(LT, "setMode" + mode);
 		macroMode = mode;
 	}
 
 	public void finish() {
-		Log.d(LT, "finished");
-		macroMode= MacroManagment.NAV_MACRO;;
+		macroMode = MacroManagment.NAV_MACRO;
+		;
 		CoreController.unregisterIOReceiver(monitorIndex);
 	}
 

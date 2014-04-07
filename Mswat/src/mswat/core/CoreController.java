@@ -185,6 +185,8 @@ public class CoreController {
 	public static int registerIOReceiver(IOReceiver ioReceiver) {
 		int size = ioReceivers.size();
 		ioReceivers.put(size, ioReceiver);
+		Log.d(LT, "io receiver put:" + size);
+
 		return size;
 	}
 
@@ -193,7 +195,7 @@ public class CoreController {
 	 */
 	public static void unregisterIOReceiver(int key) {
 		ioReceivers.remove(key);
-		Log.d(LT, "io:" + ioReceivers.size());
+		Log.d(LT, "io remove:" + key);
 
 	}
 
@@ -209,9 +211,12 @@ public class CoreController {
 	public static void updateIOReceivers(int device, int type, int code,
 			int value, int timestamp) {
 		int size = ioReceivers.size();
-		for (int i = 0; i < size; i++) {
 
-			ioReceivers.get(i).onUpdateIO(device, type, code, value, timestamp);
+		for (int i = 0; i < size; i++) {
+			
+			if (ioReceivers.get(i) != null)
+				ioReceivers.get(i).onUpdateIO(device, type, code, value,
+						timestamp);
 		}
 	}
 
@@ -472,10 +477,11 @@ public class CoreController {
 					int childCount;
 					if ((childCount = n.getAccessNode().getChildCount()) > 0) {
 						for (int i = 0; i < childCount; i++) {
-							AccessibilityNodeInfo child = n.getAccessNode().getChild(i);
-								if (child.isClickable())
-									childClickable = true; 
-							
+							AccessibilityNodeInfo child = n.getAccessNode()
+									.getChild(i);
+							if (child.isClickable())
+								childClickable = true;
+
 						}
 					}
 					if (!childClickable)
@@ -826,10 +832,10 @@ public class CoreController {
 	}
 
 	public static void setScreenSize(int width, int height) {
-		height = height - 60;
+		height = height - 80;
 		CoreController.S_HEIGHT = height;
 		CoreController.S_WIDTH = width;
-		// Log.d(LT, "width:" + width + " height:" + height);
+		Log.d(LT, "width:" + width + " height:" + height);
 		hs.storeScreenSize(width, height);
 	}
 
@@ -988,12 +994,13 @@ public class CoreController {
 	}
 
 	public static void newMacro(String name) {
-		home();
-		FeedBack.macroCommands();
-		currentMacro = name;
-		macroM.createMacro(name);
-		hs.setCreateMacro(true);
-		tm = new TouchMonitor();
+		if (home()) {
+			FeedBack.macroCommands();
+			currentMacro = name;
+			macroM.createMacro(name);
+			hs.setCreateMacro(true);
+			tm = new TouchMonitor();
+		}
 	}
 
 	public static void finishMacro() {

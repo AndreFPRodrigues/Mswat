@@ -7,6 +7,8 @@ import mswat.core.activityManager.R.menu;
 import mswat.core.feedback.FeedBack;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -27,19 +29,23 @@ public class RunMacro extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_run_macro);
 		
-		String macro = getIntent().getStringExtra("macro");
+		final String macro = getIntent().getStringExtra("macro");
 		if(macro!=null){
 			Log.d(LT, "Run:" + macro );
-			CoreController.runMacro(macro);
-			finish();
-		}
+			Handler handler = new Handler();
+			handler.postDelayed(new Runnable() {
+				public void run() { 
+					CoreController.runMacro(macro);}
+			}, 500);
+			finish();  
+		} 
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.run_macro, menu);
-
+ 
 		return true;
 	}
 
