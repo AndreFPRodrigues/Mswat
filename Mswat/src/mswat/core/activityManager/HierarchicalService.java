@@ -52,7 +52,7 @@ public class HierarchicalService extends AccessibilityService {
 	// list with the current screen nodes
 	private ArrayList<Node> nodeList = new ArrayList<Node>();
 	private ArrayList<Node> checkList = new ArrayList<Node>();
-
+ 
 	private EditText editText;
 
 	// node that represents the possibility of sliding
@@ -86,7 +86,9 @@ public class HierarchicalService extends AccessibilityService {
 	 */
 	@Override
 	public void onAccessibilityEvent(AccessibilityEvent event) {
-		// Log.d(LT, event.toString());
+		/*Log.d(LT, "----------------------------------------------");
+		Log.d(LT, "event: " + event.toString());*/
+	
 		if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)
 			CoreController.updateNotificationReceivers("" + event.getText());
 		else {
@@ -108,13 +110,19 @@ public class HierarchicalService extends AccessibilityService {
 				if (source == null) {
 					return;
 				}
+				/*
+				Log.d(LT, "source: " + source.toString());
+				Log.d(LT, "----------------------------------------------");*/
 
 				source = getRootParent(source);
 				if (source == null) {
 					return;
 				}
 				currentParent = source;
-
+				/*
+				Log.d(LT, "parent: " + source.toString());
+				Log.d(LT, "----------------------------------------------");*/
+				
 				// register keystrokes
 				if (AccessibilityEvent.eventTypeToString(event.getEventType())
 						.contains("TEXT")) {
@@ -122,7 +130,7 @@ public class HierarchicalService extends AccessibilityService {
 						if (event.getRemovedCount() > event.getAddedCount())
 							monitor.registerKeystroke("BackSpace");
 						else {
-
+ 
 							if (event.getRemovedCount() != event
 									.getAddedCount()) {
 								// When the before text is a space it needs this
@@ -173,7 +181,7 @@ public class HierarchicalService extends AccessibilityService {
 
 					// Send content update to the receivers
 					CoreController.updateContentReceivers(nodeList);
-					printViewItens((ArrayList<Node>) nodeList.clone());
+					printViewItens((ArrayList<Node>) nodeList.clone()); 
 
 					// Macro step
 					if (runningMacro
@@ -299,6 +307,7 @@ public class HierarchicalService extends AccessibilityService {
 		if (size > 0)
 			for (int i = 0; i < size; i++) {
 				Log.d(LT, listCurrentNodes.get(i).toString());
+				//Log.d(LT, listCurrentNodes.get(i).getAccessNode().toString());
 			}
 
 	}
@@ -563,14 +572,24 @@ public class HierarchicalService extends AccessibilityService {
 	private void handleMacroCreation(AccessibilityEvent event) {
 
 		AccessibilityNodeInfo src = event.getSource();
-		// Log.d(LT, "handling macro: " +src.toString());
+		//Log.d(LT, "handling macro: " +src.toString());
+		if (src != null) {
+			for(int i=0; i<nodeList.size();i++){
+				Node n=nodeList.get(i);
+				if(src.hashCode()== n.getAccessNode().hashCode())
+					CoreController.addMacroStep(n.getName());
+						Log.d(LT,"ESTE E IGUAL");
+	
+			}
+		}
+		/*
 		if (src != null) {
 			String text;
 			if ((text = getText(src)) != null)
 				CoreController.addMacroStep(text);
 			else {
 				int numchilds = src.getChildCount();
-				// Log.d(LT,"childs: " + numchilds);
+				Log.d(LT,"s childs: " + numchilds);
 				for (int i = 0; i < numchilds; i++) {
 					if ((text = getText(src.getChild(i))) != null) {
 						CoreController.addMacroStep(text);
@@ -579,7 +598,7 @@ public class HierarchicalService extends AccessibilityService {
 				}
 				src = src.getParent();
 				numchilds = src.getChildCount();
-				// Log.d(LT,"childs: " + numchilds);
+				Log.d(LT,"p childs: " + numchilds);
 				for (int i = 0; i < numchilds; i++) {
 					if ((text = getText(src.getChild(i))) != null) {
 						CoreController.addMacroStep(text);
@@ -587,7 +606,7 @@ public class HierarchicalService extends AccessibilityService {
 					}
 				}
 			}
-		}
+		}*/
 
 	}
 
@@ -697,9 +716,9 @@ public class HierarchicalService extends AccessibilityService {
 					}
 					return;
 				} 
-			}
+			}  
 			Node n;
-			if ((n = nodeList.get(nodeList.size() - 1)).getName().equals(
+			if ( nodeList.size()>0 &&(n = nodeList.get(nodeList.size() - 1)).getName().equals(
 					"SCROLL")) {
 				nlc.focusIndex("SCROLL");
 				if (nlc.selectFocus() == null) {

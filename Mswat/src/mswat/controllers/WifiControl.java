@@ -18,7 +18,7 @@ public class WifiControl extends ControlInterface {
 	private final static String LT = "WifiControl";
 
 	private ServerSocket serverSocket;
-
+ 
 	Handler updateConversationHandler;
 
 	Thread serverThread = null; 
@@ -28,7 +28,7 @@ public class WifiControl extends ControlInterface {
 	private final int SELECT = 2;
 	private final int FOCUS = 3;
 	private final int TOUCH = 4;
-	private final int AUTO_HIGHLIGHT = 5;
+	private final int AUTO_HIGHLIGHT = 5; 
 	private final int HOME = 6;
 	private final int BACK = 7;
 	private final int CLICK = 8;

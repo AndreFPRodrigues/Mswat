@@ -83,7 +83,7 @@ public class NodeListController {
 	 */
 	public String selectFocus() {
 		if (currentNavIndex > -1 && currentNavIndex < listCurrentNodes.size()) {
-			// Log.d("ScreenReader", "select index" + currentNavIndex);
+			Log.d("ScreenReader", "select index" + currentNavIndex);
 			boolean result = false;
 			Node n = listCurrentNodes.get(currentNavIndex);
 			Log.d(LT, "Index:" + currentNavIndex + " " + n.getName());
@@ -118,24 +118,27 @@ public class NodeListController {
 					} else {
 						if (n.getAccessNode().isClickable()) {
 							Log.d(LT,
-									"res3.0 " + n.getBounds().left + " " + n.getBounds().right + " " + n.getBounds().top  );
+									"res3.0 " + n.getBounds().left + " "
+											+ n.getBounds().right + " "
+											+ n.getBounds().top + " "+ n.getBounds().bottom
+											);
 							// MACRO FIX MIGHT BUG OTHERs
 							if (n.getBounds().left >= 0
-									&& n.getBounds().right >= 0 
+									&& n.getBounds().right >= 0
 									&& n.getBounds().bottom >= 0
-									&& n.getBounds().top >= 0 && n.getBounds().right<=CoreController.M_WIDTH && n.getBounds().bottom<=(CoreController.M_HEIGHT+10)) {
-								Log.d(LT,
-										"res3.1 " +  n.getAccessNode());
+									&& n.getBounds().top >= 0
+									&& n.getBounds().right <= CoreController.M_WIDTH
+									&& n.getBounds().bottom <= (CoreController.M_HEIGHT + 10)) {
+								Log.d(LT, "res3.1 " + n.getAccessNode());
 								result = n.getAccessNode().performAction(
-										AccessibilityNodeInfo.ACTION_CLICK); 
-							
-								Log.d(LT,
-										"res3.2 " +  result);
+										AccessibilityNodeInfo.ACTION_CLICK);
 
-							}
+								Log.d(LT, "res3.2 " + result);
+
+							} 
 						} else {
 							if (n.getAccessNode().getParent() != null) {
-								//Log.d(LT, "res4");
+								// Log.d(LT, "res4");
 
 								result = n
 										.getAccessNode()
@@ -281,21 +284,23 @@ public class NodeListController {
 		String result = "null";
 
 		int size = listCurrentNodes.size();
-		int sizeResult=10000;
+		int sizeResult = 10000;
 		for (int i = 0; i < size; i++) {
 
 			if (listCurrentNodes.get(i).isInside(x, y)) {
-				Log.d(LT,"inside:"+ listCurrentNodes.get(i).getName() + " size:" +listCurrentNodes.get(i).getBounds().width() );
-				if(sizeResult> listCurrentNodes.get(i).getBounds().width()){
-					result= listCurrentNodes.get(i).getName();
-					sizeResult=listCurrentNodes.get(i).getBounds().width();
+				Log.d(LT, "inside:" + listCurrentNodes.get(i).getName()
+						+ " size:"
+						+ listCurrentNodes.get(i).getBounds().width());
+				if (sizeResult > listCurrentNodes.get(i).getBounds().width()) {
+					result = listCurrentNodes.get(i).getName();
+					sizeResult = listCurrentNodes.get(i).getBounds().width();
 				}
 			}
 
-		}  
+		}
 
 		return result;
-	} 
+	}
 
 	/**
 	 * Gets node name at given coords, null if none
@@ -325,7 +330,7 @@ public class NodeListController {
 
 		for (int i = size - 1; i > -1; i--) {
 			if (listCurrentNodes.get(i).getName().equals(name)) {
-				if(name.equals("SCROLL"))
+				if (name.equals("SCROLL"))
 					return -55;
 				return i;
 			}
@@ -335,7 +340,9 @@ public class NodeListController {
 	}
 
 	public String getNodeNameByIndex(int index) {
-		return listCurrentNodes.get(index).getName();
+		if (index < listCurrentNodes.size())
+			return listCurrentNodes.get(index).getName();
+		return "";
 	}
 
 	/**

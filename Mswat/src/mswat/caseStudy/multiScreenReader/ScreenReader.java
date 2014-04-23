@@ -109,6 +109,12 @@ public class ScreenReader extends ControlInterface implements IOReceiver {
 
 	private static int manID = -1;
 	private static int womenID = -1;
+	
+	//log timestamp after first touch
+	private static boolean returnFirstTouch=false;
+	
+	//used to silence up sound
+	private boolean doubleClickActivated=false;
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -179,10 +185,15 @@ public class ScreenReader extends ControlInterface implements IOReceiver {
 
 			CoreController.clearHightlights();
 
-		}
+		}else if(intent.getAction().equals("screenReaderTarget") && enabled){
+			Log.d(LT, "Got Target:"  );
+			ttc.sendMessage("addSourceFrontAndPlay,src" + (1)
+			+ "," + voz + intent.getStringExtra("target") + ".wav," + "20");
+			returnFirstTouch =true;
+		} 
 
-	}
-
+	}  
+ 
 	private void createManualCollums() {
 		manualCol = new ArrayList<String[]>();
 
@@ -207,9 +218,12 @@ public class ScreenReader extends ControlInterface implements IOReceiver {
 
 	@Override
 	public void onUpdateIO(int device, int type, int code, int value,
-			int timestamp) {
+			int timestamp) { 
 		// verify if the update is of the monitored device
 		if (this.deviceIndex == device && enabled) { 
+			
+		
+			
 			// get active touch recognizer
 			if (tpr == null)
 				tpr = CoreController.getActiveTPR();
@@ -218,14 +232,16 @@ public class ScreenReader extends ControlInterface implements IOReceiver {
 			int result = tpr.identifyOnChange(type, code, value, timestamp);
 
 			if (result != -1) {
+				
+			
 
 				// Last touch characteristics
 				String s;
 				String log;
 				TouchEvent te = tpr.getlastTouch();
-				int x = te.getX();
-
-				int y = te.getY() + 20;
+				int x = te.getX();   
+ 
+				int y = te.getY() + 20;  
 
 				// setting timestamp accordingly with app log
 				// int timestampTPR = tpr.getTimestamp();
@@ -234,11 +250,11 @@ public class ScreenReader extends ControlInterface implements IOReceiver {
 				int identifier = te.getIdentifier();
 				// int identifier = tpr.popLastID();
 
-				// Log.d(LT, "id:" + identifier);
+				// Log.d(LT, "id:" + identifier); 
 				// + " Result:" + result);
-
+ 
 				// Node of the touch
-				s = CoreController.getNodeAt(x, y);
+				s = CoreController.getNodeAt(x, y); 
 				// Log.d(LT, "x:" + x + " y:" + y + " node:" + s);
 
 				// convert coord to screen coord
@@ -362,26 +378,31 @@ public class ScreenReader extends ControlInterface implements IOReceiver {
 								//		+ doubleClickLastUp);
 
 								// SEND down MESSAGE
-								toRead = CoreController
-										.getNodeByIndex(indexNear);
+								toRead = CoreController 
+										.getNodeByIndex(indexNear);  
 
 								if (exploreMode == SINGLE)
 									teste = "addSourceAndPlay,src," + voz
 											+ lastUp + ".wav,0,0,0";
+									
+									
 								else {
 									teste = sendToService(identifier - 1,
 											write, toRead.getX());
+									teste = "stopExistentSource,src"+(identifier );
+									ttc.sendMessage(teste);
+									teste = "addSourceAndPlay,src"+(identifier - 1)+",click.wav,0,0,0";
 
 									// logging double click
 									log = TouchRecognizer.DOUBLE_CLICK + ","
 											+ write + "," + timestampTPR;
 									toLog.add(log);
 								}
-
+								
 								ttc.sendMessage(teste);
-
+								doubleClickActivated =true;
 							}
-						}
+						} 
 					} else {
 
 						lastDown = timestampTPR;
@@ -588,7 +609,13 @@ public class ScreenReader extends ControlInterface implements IOReceiver {
 
 			}
 		}
-
+		//send first touch to the application for logging purposes
+		if(returnFirstTouch){
+			returnFirstTouch=false;
+			// send target to SWAT
+			clickNode("startExplore");
+			Log.d(LT, "PRESSED EXPLORE");
+		}
 	}
 
 	private void splitTap(long timestampTPR) {

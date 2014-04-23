@@ -130,6 +130,7 @@
             android:enabled="true" >
             <intent-filter>
                 <action android:name="mswat_init_screenReader" />
+                <action android:name="screenReaderTarget" />
                 <action android:name="mswat_stop" />
             </intent-filter>
         </receiver>
@@ -159,9 +160,9 @@
             android:label="MacroSwat" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            
         </activity>
     </application>
 

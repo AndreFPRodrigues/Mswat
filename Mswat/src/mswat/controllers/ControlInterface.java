@@ -8,11 +8,11 @@ import android.os.SystemClock;
  * Parent of all interfacing schemes
  * @author Andre Rodrigues
  *
- */
+ */ 
 
 public abstract class ControlInterface extends BroadcastReceiver{
 	
-	
+	 
 	
 	/**
 	 * Send navNext message

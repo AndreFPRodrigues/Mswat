@@ -971,7 +971,7 @@ public class CoreController {
 
 	public static void writeToLog(ArrayList<String> toLog, String filepath) {
 		if (loggers.size() > 0) {
-			Log.d(LT, "Writing to log");
+			Log.d(LT, "Writing to log:"  + filepath);
 			loggers.get(0).registerToLog(toLog, filepath);
 		}
 
